@@ -25,14 +25,14 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "https://memoirefrontend.onrender.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Configuration Spring Boot
-SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "http://localhost:8080")
+# Configuration Spring Boot - CORRECTION : URL de Render
+SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "https://memoireback.onrender.com/api")
 SPRING_BOOT_API_KEY = os.getenv("SPRING_BOOT_API_KEY", "trustsign-secret-key-2024")
 VERIFY_SSL = os.getenv("SPRING_BOOT_VERIFY_SSL", "false").lower() == "true"
 
@@ -47,12 +47,12 @@ from services.detecteur_anomalies import DetecteurAnomalies
 # ⭐ IMPORT DES ROUTEURS
 from routeurs.audit_intelligent_routeur import routeur as audit_router
 from routeurs.chatbot_routeur import router as chatbot_router
-from routeurs.ia_avancee_routeur import routeur as ia_avancee_router  # ⭐ AJOUTER CETTE LIGNE
+from routeurs.ia_avancee_routeur import routeur as ia_avancee_router
 
 # ⭐ INCLUSION DES ROUTEURS
 app.include_router(audit_router)
 app.include_router(chatbot_router)
-app.include_router(ia_avancee_router)  # ⭐ AJOUTER CETTE LIGNE
+app.include_router(ia_avancee_router)
 
 # Initialisation
 detecteur_ia = DetecteurAnomalies()
@@ -67,8 +67,9 @@ def get_logs_from_spring(start_date=None, end_date=None, limit=5000):
         if end_date:
             params["endDate"] = end_date.isoformat() if hasattr(end_date, 'isoformat') else end_date
         
+        # CORRECTION : Endpoint sans double /api
         response = requests.get(
-            f"{SPRING_BOOT_URL}/api/ia/logs/public",
+            f"{SPRING_BOOT_URL}/ia/logs/public",
             params=params,
             headers=HEADERS,
             timeout=30,
@@ -113,14 +114,16 @@ async def root():
 async def health_check():
     spring_status = "unknown"
     try:
+        # CORRECTION : Endpoint sans double /api
         response = requests.get(
-            f"{SPRING_BOOT_URL}/api/ia/health",
+            f"{SPRING_BOOT_URL}/ia/health",
             headers=HEADERS,
             timeout=5,
             verify=VERIFY_SSL
         )
         spring_status = "connected" if response.status_code == 200 else "error"
     except Exception as e:
+        logger.error(f"Erreur health check: {e}")
         spring_status = "disconnected"
     
     return {

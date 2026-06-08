@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 routeur = APIRouter(prefix="/api/ia/audit", tags=["Audit Intelligent"])
 
-# Configuration
-SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "http://localhost:8080")
+# Configuration - CORRECTION : Utiliser HTTPS avec l'URL de Render
+SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "https://memoireback.onrender.com/api")
 SPRING_BOOT_API_KEY = os.getenv("SPRING_BOOT_API_KEY", "trustsign-secret-key-2024")
 VERIFY_SSL = os.getenv("SPRING_BOOT_VERIFY_SSL", "false").lower() == "true"
 
@@ -35,8 +35,9 @@ def get_logs_from_spring(start_date=None, end_date=None, limit=5000):
         if end_date:
             params["endDate"] = end_date.isoformat() if hasattr(end_date, 'isoformat') else end_date
         
+        # CORRECTION : Endpoint sans double /api
         response = requests.get(
-            f"{SPRING_BOOT_URL}/api/ia/logs/public",
+            f"{SPRING_BOOT_URL}/ia/logs/public",
             params=params,
             headers=HEADERS,
             timeout=30,
@@ -46,6 +47,8 @@ def get_logs_from_spring(start_date=None, end_date=None, limit=5000):
         if response.status_code == 200:
             data = response.json()
             return data.get("logs", [])
+        else:
+            logger.error(f"Erreur Spring Boot: {response.status_code}")
         return []
     except Exception as e:
         logger.error(f"Erreur connexion: {e}")
@@ -237,13 +240,14 @@ async def health_check():
     spring_status = "unknown"
     try:
         response = requests.get(
-            f"{SPRING_BOOT_URL}/api/ia/health",
+            f"{SPRING_BOOT_URL}/ia/health",
             headers=HEADERS,
             timeout=5,
             verify=VERIFY_SSL
         )
         spring_status = "connected" if response.status_code == 200 else "error"
-    except:
+    except Exception as e:
+        logger.error(f"Erreur health check: {e}")
         spring_status = "disconnected"
     
     return {

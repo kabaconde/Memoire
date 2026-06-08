@@ -16,10 +16,12 @@ router = APIRouter(prefix="/api/chatbot", tags=["Chatbot"])
 # CONFIGURATION MISTRAL (avec ta clé par défaut)
 # ============================================
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "ZQfdOI3Q3Gwg2d7odgcg0Madaexee3qY")
-MISTRAL_AVAILABLE = bool(MISTRAL_API_KEY)
+MISTRAL_AVAILABLE = bool(MISTRAL_API_KEY and MISTRAL_API_KEY != "ZQfdOI3Q3Gwg2d7odgcg0Madaexee3qY")
 
 if MISTRAL_AVAILABLE:
     logger.info(f"✅ Mistral API configurée (clé: {MISTRAL_API_KEY[:10]}...)")
+else:
+    logger.warning("⚠️ Mistral API non configurée ou clé par défaut")
 
 # ============================================
 # BASE DE CONNAISSANCES PROTECTED CONSULTING (RAG)
@@ -366,7 +368,7 @@ async def send_message(request: MessageRequest):
         else:
             logger.warning("⚠️ Mistral n'a pas répondu, fallback local")
     else:
-        logger.warning("⚠️ Mistral non disponible (clé API manquante)")
+        logger.warning("⚠️ Mistral non disponible (clé API manquante ou invalide)")
     
     # ÉTAPE 3: Fallback avec RAG local
     if context:

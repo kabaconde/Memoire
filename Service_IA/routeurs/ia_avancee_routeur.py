@@ -35,7 +35,8 @@ def get_logs_from_spring(start_date=None, end_date=None, limit=5000):
     import requests
     import os
     
-    SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "http://localhost:8080")
+    # CORRECTION : Utiliser l'URL de Render
+    SPRING_BOOT_URL = os.getenv("SPRING_BOOT_URL", "https://memoireback.onrender.com/api")
     SPRING_BOOT_API_KEY = os.getenv("SPRING_BOOT_API_KEY", "trustsign-secret-key-2024")
     VERIFY_SSL = os.getenv("SPRING_BOOT_VERIFY_SSL", "false").lower() == "true"
     
@@ -44,12 +45,13 @@ def get_logs_from_spring(start_date=None, end_date=None, limit=5000):
     try:
         params = {"limit": limit}
         if start_date:
-            params["startDate"] = start_date.isoformat()
+            params["startDate"] = start_date.isoformat() if hasattr(start_date, 'isoformat') else start_date
         if end_date:
-            params["endDate"] = end_date.isoformat()
+            params["endDate"] = end_date.isoformat() if hasattr(end_date, 'isoformat') else end_date
         
+        # CORRECTION : Endpoint sans double /api
         response = requests.get(
-            f"{SPRING_BOOT_URL}/api/ia/logs/public",
+            f"{SPRING_BOOT_URL}/ia/logs/public",
             params=params,
             headers=headers,
             timeout=30,
@@ -149,7 +151,7 @@ async def detection_complete(
         },
         "scores_risque": scores_risque[:10],
         "recommandations": service_recommandations.formater_pour_frontend(recommandations),
-        "resume_attaques": resume_attaques,  # ← CORRIGÉ
+        "resume_attaques": resume_attaques,
         "modele_ia": {
             "entraine": modele_entraine,
             "logs_analyses": len(logs)
