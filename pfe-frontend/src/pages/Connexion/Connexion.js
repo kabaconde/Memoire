@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Box, TextField, Button, Alert, InputAdornment, 
     CircularProgress, Typography, Link, Divider, useMediaQuery,
-    Stack  
+    Stack
 } from '@mui/material';
 import { Lock, Email, Security } from '@mui/icons-material';
 import API from '../../services/api';
@@ -14,6 +14,7 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
     const [motDePasse, setMotDePasse] = useState('');
     const [otpCode, setOtpCode] = useState('');
     const [isMfaRequired, setIsMfaRequired] = useState(false);
+    const [isOtpSent, setIsOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errorKey, setErrorKey] = useState(0);
@@ -39,17 +40,31 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
 
     const redirectUserByRole = (role) => {
         if (redirectPath && redirectPath !== '/' && !redirectPath.includes('/connexion')) {
-            navigate(decodeURIComponent(redirectPath), { replace: true });
+            navigate(decodeURIComponent(redirectPath));
             return;
         }
 
         const activeRole = role || localStorage.getItem('role'); 
 
-        if (activeRole === 'SUPER_ADMIN') navigate('/super-admin-dashboard', { replace: true });
-        else if (activeRole === 'ADMIN_ENTREPRISE') navigate('/admin-dashboard', { replace: true });
-        else if (activeRole === 'EMPLOYE') navigate('/employe-dashboard', { replace: true });
-        else if (activeRole === 'UTILISATEUR') navigate('/user-dashboard', { replace: true });
-        else navigate('/user-dashboard', { replace: true });
+        if (activeRole === 'SUPER_ADMIN') navigate('/super-admin-dashboard');
+        else if (activeRole === 'ADMIN_ENTREPRISE') navigate('/admin-dashboard');
+        else if (activeRole === 'EMPLOYE') navigate('/employe-dashboard');
+        else if (activeRole === 'UTILISATEUR') navigate('/user-dashboard');
+        else navigate('/user-dashboard');
+    };
+
+    const sendOtp = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            await API.post('/signature/send-otp', { email: email.trim().toLowerCase() });
+            setIsOtpSent(true);
+        } catch (err) {
+            setError("Erreur lors de l'envoi du code OTP");
+            setErrorKey(prev => prev + 1);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleLogin = async () => {
@@ -63,23 +78,20 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
             
             if (response.data.necessiteMfa) {
                 setIsMfaRequired(true);
-                setError('');
+                await sendOtp();
             } else {
-                // Stocker le token dans localStorage
-                const accessToken = response.data.accessToken;
-                if (accessToken) {
-                    localStorage.setItem('accessToken', accessToken);
+                if (response.data.accessToken) {
+                    localStorage.setItem('accessToken', response.data.accessToken);
                 }
-                
                 localStorage.setItem('role', response.data.role);
                 localStorage.setItem('user_info', JSON.stringify({
                     prenom: response.data.prenom,
                     nom: response.data.nom,
-                    email: email
+                    email: response.data.email || email
                 }));
                 
                 if (onLoginSuccess) onLoginSuccess();
-                redirectUserByRole(response.data.role);
+                setTimeout(() => redirectUserByRole(response.data.role), 1000);
             }
         } catch (err) {
             const errorMessage = err.response?.data?.erreur || err.response?.data?.message || "Identifiants incorrects.";
@@ -91,6 +103,11 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
     };
 
     const handleVerifyOtp = async () => {
+        if (!otpCode.trim()) {
+            setError("Veuillez saisir le code OTP");
+            return;
+        }
+        
         setLoading(true);
         setError('');
         try {
@@ -99,10 +116,8 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                 code: otpCode.trim() 
             });
             
-            // Stocker le token dans localStorage
-            const accessToken = response.data.accessToken;
-            if (accessToken) {
-                localStorage.setItem('accessToken', accessToken);
+            if (response.data.accessToken) {
+                localStorage.setItem('accessToken', response.data.accessToken);
             }
             
             localStorage.setItem('role', response.data.role);
@@ -113,7 +128,7 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
             }));
 
             if (onLoginSuccess) onLoginSuccess();
-            redirectUserByRole(response.data.role);
+            setTimeout(() => redirectUserByRole(response.data.role), 1000);
         } catch (err) {
             const errorMessage = err.response?.data?.erreur || "Code OTP invalide ou expiré.";
             setError(errorMessage);
@@ -123,17 +138,20 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
         }
     };
 
+    const handleResendOtp = async () => {
+        await sendOtp();
+    };
+
     const handleGoogleSuccess = async (googleData) => {
         setLoading(true);
         setError('');
         try {
             const response = await API.post('/auth/google', { token: googleData.credential });
 
-            const accessToken = response.data.accessToken;
-            if (accessToken) {
-                localStorage.setItem('accessToken', accessToken);
+            if (response.data.accessToken) {
+                localStorage.setItem('accessToken', response.data.accessToken);
             }
-
+            
             localStorage.setItem('role', response.data.role);
             localStorage.setItem('user_info', JSON.stringify({
                 prenom: response.data.prenom,
@@ -142,7 +160,7 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
             }));
 
             if (onLoginSuccess) onLoginSuccess();
-            redirectUserByRole(response.data.role);
+            setTimeout(() => redirectUserByRole(response.data.role), 1000);
         } catch (err) {
             const errorMessage = err.response?.data?.erreur || "Échec de la connexion avec Google.";
             setError(errorMessage);
@@ -162,6 +180,7 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
 
     const handleRetour = () => {
         setIsMfaRequired(false);
+        setIsOtpSent(false);
         setError('');
         setOtpCode('');
     };
@@ -360,8 +379,9 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                             wordBreak: 'break-word'
                         }}
                     >
-                        Entrez le code envoyé à <strong>{email}</strong>
+                        Un code de vérification a été envoyé à <strong>{email}</strong>
                     </Typography>
+                    
                     <TextField 
                         fullWidth 
                         label="Code OTP" 
@@ -385,11 +405,12 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                         sx={fieldStyle}
                         size={isMobile ? "small" : "medium"}
                     />
+                    
                     <Button 
                         fullWidth 
                         variant="contained" 
                         onClick={handleVerifyOtp} 
-                        disabled={loading}
+                        disabled={loading || !otpCode.trim()}
                         sx={{ 
                             mt: { xs: 2, sm: 3 }, 
                             py: { xs: 1.5, sm: 2 }, 
@@ -398,8 +419,24 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                             fontSize: { xs: '0.875rem', sm: '1rem' }
                         }}
                     >
-                        {loading ? <CircularProgress size={isMobile ? 20 : 24} color="inherit" /> : "Vérifier le code"}
+                        {loading ? <CircularProgress size={isMobile ? 20 : 24} color="inherit" /> : "Vérifier et se connecter"}
                     </Button>
+                    
+                    <Button 
+                        fullWidth 
+                        variant="text" 
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                        sx={{ 
+                            mt: 1, 
+                            color: '#3b82f6', 
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                            '&:hover': { bgcolor: 'rgba(59,130,246,0.05)' }
+                        }}
+                    >
+                        Renvoyer le code
+                    </Button>
+                    
                     <Button 
                         fullWidth 
                         variant="text" 
