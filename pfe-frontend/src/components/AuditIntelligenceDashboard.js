@@ -1,4 +1,4 @@
-// components/AuditIntelligenceDashboard.js - VERSION AVEC SÉLECTEUR DE VISUALISATION
+// components/AuditIntelligenceDashboard.js - VERSION AVEC SÉLECTEUR DE VISUALISATION ET RAPPORT
 import React, { useState, useEffect } from 'react';
 import {
     Box, Grid, Card, CardContent, Typography, Paper,
@@ -20,7 +20,7 @@ import {
     Shield, BugReport, Analytics, Dashboard,
     History, Star, VerifiedUser,
     PieChart as PieChartIcon, BarChart as BarChartIcon,
-    ViewList as ViewListIcon
+    ViewList as ViewListIcon, Description as DescriptionIcon
 } from '@mui/icons-material';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -56,6 +56,9 @@ const AuditIntelligenceDashboard = () => {
     const [detailOpen, setDetailOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [chartType, setChartType] = useState('donut');
+    const [rapport, setRapport] = useState(null);
+    const [rapportLoading, setRapportLoading] = useState(false);
+    const [rapportDialogOpen, setRapportDialogOpen] = useState(false);
     const isMobile = useMediaQuery('(max-width:900px)');
 
     // Récupérer le token
@@ -96,6 +99,29 @@ const AuditIntelligenceDashboard = () => {
             console.error('Erreur:', error);
         } finally {
             setTimeout(() => setLoading(false), 500);
+        }
+    };
+
+    const genererRapport = async () => {
+        setRapportLoading(true);
+        try {
+            const token = getToken();
+            const response = await axios.get(`${IA_API_URL}/api/ia/audit/rapport?jours=30`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+            
+            if (response.data.success) {
+                setRapport(response.data.rapport);
+                setRapportDialogOpen(true);
+            } else {
+                console.error("Erreur:", response.data.message);
+            }
+        } catch (error) {
+            console.error("Erreur lors de la génération du rapport:", error);
+        } finally {
+            setRapportLoading(false);
         }
     };
 
@@ -335,23 +361,35 @@ const AuditIntelligenceDashboard = () => {
                                 Détection d'anomalies • Analyse comportementale • Alertes sécurité
                             </Typography>
                         </Box>
-                        <Badge 
-                            badgeContent={niveauGlobal} 
-                            color={niveauGlobal === 'CRITIQUE' ? 'error' : niveauGlobal === 'ELEVE' ? 'warning' : 'success'}
-                            sx={{ mt: { xs: 2, sm: 0 } }}
-                        >
-                            <Chip 
-                                icon={RISK_LEVELS[niveauGlobal]?.icon || <Security />}
-                                label={`Risque ${RISK_LEVELS[niveauGlobal]?.label || 'Inconnu'}`}
-                                sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.2)', 
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    fontSize: '1rem',
-                                    py: 2
-                                }}
-                            />
-                        </Badge>
+                        <Stack direction="row" spacing={1}>
+                            <Button 
+                                variant="outlined" 
+                                startIcon={rapportLoading ? <CircularProgress size={16} /> : <DescriptionIcon />} 
+                                onClick={genererRapport}
+                                disabled={rapportLoading}
+                                size="small"
+                                sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }}
+                            >
+                                {rapportLoading ? "Génération..." : "Rapport"}
+                            </Button>
+                            <Badge 
+                                badgeContent={niveauGlobal} 
+                                color={niveauGlobal === 'CRITIQUE' ? 'error' : niveauGlobal === 'ELEVE' ? 'warning' : 'success'}
+                                sx={{ mt: { xs: 2, sm: 0 } }}
+                            >
+                                <Chip 
+                                    icon={RISK_LEVELS[niveauGlobal]?.icon || <Security />}
+                                    label={`Risque ${RISK_LEVELS[niveauGlobal]?.label || 'Inconnu'}`}
+                                    sx={{ 
+                                        bgcolor: 'rgba(255,255,255,0.2)', 
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '1rem',
+                                        py: 2
+                                    }}
+                                />
+                            </Badge>
+                        </Stack>
                     </Stack>
                 </Paper>
             </Zoom>
@@ -749,6 +787,129 @@ const AuditIntelligenceDashboard = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDetailOpen(false)} variant="contained">Fermer</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialogue du rapport d'audit */}
+            <Dialog 
+                open={rapportDialogOpen} 
+                onClose={() => setRapportDialogOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: '16px', maxHeight: '80vh' }
+                }}
+            >
+                <DialogTitle sx={{ bgcolor: COLORS.primary, color: 'white' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="h6">📊 Rapport d'audit</Typography>
+                        <IconButton onClick={() => setRapportDialogOpen(false)} sx={{ color: 'white' }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Stack>
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 3, overflowY: 'auto' }}>
+                    {rapport ? (
+                        <Stack spacing={3}>
+                            {/* ID du rapport */}
+                            <Paper sx={{ p: 2, bgcolor: '#f5f7fa', borderRadius: 2 }}>
+                                <Typography variant="caption" color="textSecondary">ID du rapport</Typography>
+                                <Typography variant="body2" fontFamily="monospace">{rapport.id_rapport}</Typography>
+                                <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>Période</Typography>
+                                <Typography variant="body2">
+                                    Du {new Date(rapport.periode?.debut).toLocaleDateString()} au {new Date(rapport.periode?.fin).toLocaleDateString()}
+                                </Typography>
+                                <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>Généré le</Typography>
+                                <Typography variant="body2">{new Date(rapport.genere_le).toLocaleString()}</Typography>
+                            </Paper>
+                            
+                            {/* Résumé exécutif */}
+                            <Paper sx={{ p: 2, borderRadius: 2 }}>
+                                <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>📋 Résumé exécutif</Typography>
+                                <Typography variant="body2">{rapport.resume_executif}</Typography>
+                            </Paper>
+                            
+                            {/* Statistiques globales */}
+                            <Paper sx={{ p: 2, borderRadius: 2 }}>
+                                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>📊 Statistiques globales</Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary">Total événements</Typography>
+                                        <Typography variant="h5" fontWeight="bold">{rapport.statistiques_globales?.total_evenements || 0}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary">Taux de succès</Typography>
+                                        <Typography variant="h5" fontWeight="bold" color="success.main">
+                                            {rapport.statistiques_globales?.taux_succes || 0}%
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary">Documents signés</Typography>
+                                        <Typography variant="h5" fontWeight="bold">{rapport.statistiques_globales?.documents_signes || 0}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary">Utilisateurs actifs</Typography>
+                                        <Typography variant="h5" fontWeight="bold">{rapport.statistiques_globales?.utilisateurs_actifs || 0}</Typography>
+                                    </Grid>
+                                </Grid>
+                            </Paper>
+                            
+                            {/* Top utilisateurs */}
+                            {rapport.top_utilisateurs && rapport.top_utilisateurs.length > 0 && (
+                                <Paper sx={{ p: 2, borderRadius: 2 }}>
+                                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>👥 Top utilisateurs</Typography>
+                                    <TableContainer>
+                                        <Table size="small">
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Utilisateur</TableCell>
+                                                    <TableCell align="center">Actions</TableCell>
+                                                    <TableCell align="center">Taux succès</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {rapport.top_utilisateurs.slice(0, 5).map((u, idx) => (
+                                                    <TableRow key={idx}>
+                                                        <TableCell>{u.email?.split('@')[0]}</TableCell>
+                                                        <TableCell align="center">{u.total_actions}</TableCell>
+                                                        <TableCell align="center">
+                                                            <Chip 
+                                                                label={`${u.taux_succes}%`} 
+                                                                size="small"
+                                                                color={u.taux_succes >= 90 ? 'success' : u.taux_succes >= 70 ? 'warning' : 'error'}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Paper>
+                            )}
+                            
+                            {/* Recommandations */}
+                            {rapport.recommandations && rapport.recommandations.length > 0 && (
+                                <Paper sx={{ p: 2, borderRadius: 2, bgcolor: '#fff8e1' }}>
+                                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>💡 Recommandations</Typography>
+                                    <Stack spacing={1}>
+                                        {rapport.recommandations.map((rec, idx) => (
+                                            <Alert key={idx} severity={rec.includes('⚠️') ? 'warning' : 'info'} sx={{ borderRadius: 2 }}>
+                                                {rec}
+                                            </Alert>
+                                        ))}
+                                    </Stack>
+                                </Paper>
+                            )}
+                        </Stack>
+                    ) : (
+                        <Box textAlign="center" py={4}>
+                            <CircularProgress />
+                            <Typography sx={{ mt: 2 }}>Génération du rapport...</Typography>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRapportDialogOpen(false)} variant="contained">Fermer</Button>
                 </DialogActions>
             </Dialog>
         </Box>
