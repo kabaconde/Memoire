@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copier et installer les dépendances Python - CORRECTION ICI
 # Le fichier s'appelle exigences.txt et non requirements.txt
-COPY exigences.txt .
-RUN pip install --no-cache-dir --user -r exigences.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
 # --- Étape 2 : Image finale ---
 FROM python:3.11-slim
