@@ -128,20 +128,6 @@ public class SuperAdminController {
     }
 
 
-    @GetMapping("/pki/stats")
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
-    public ResponseEntity<Map<String, Long>> getPkiStats() {
-        List<Utilisateur> allUsers = utilisateurRepository.findAll();
-
-        Map<String, Long> stats = new HashMap<>();
-        stats.put("pending", allUsers.stream().filter(u -> "PENDING".equals(u.getStatusPki())).count());
-        stats.put("active", allUsers.stream().filter(u -> "ACTIVE".equals(u.getStatusPki())).count());
-        stats.put("expired", allUsers.stream().filter(u -> "EXPIRED".equals(u.getStatusPki())).count());
-        stats.put("none", allUsers.stream().filter(u -> u.getStatusPki() == null || "NONE".equals(u.getStatusPki())).count());
-
-        return ResponseEntity.ok(stats);
-    }
-
 
     @GetMapping("/utilisateurs")
     @PreAuthorize("hasAuthority('SUPER_ADMIN')")
