@@ -1,10 +1,20 @@
 // config-overrides.js
-const { override, addWebpackAlias } = require('customize-cra');
-const path = require('path');
+const webpack = require('webpack');
 
-module.exports = override(
-    addWebpackAlias({
-        // On cible le fichier précis dans node_modules avec un chemin absolu
-        '@mui/material/Close': path.resolve(__dirname, 'node_modules/@mui/icons-material/Close')
-    })
-);
+module.exports = function override(config, env) {
+    // Ajouter un alias pour résoudre le problème CloseIcon
+    config.resolve.alias = {
+        ...config.resolve.alias,
+        '@mui/material/Close': '@mui/icons-material/Close',
+        '@mui/material/CloseIcon': '@mui/icons-material/Close'
+    };
+    
+    // Plugin pour injecter l'export manquant
+    config.plugins = (config.plugins || []).concat([
+        new webpack.ProvidePlugin({
+            CloseIcon: ['@mui/icons-material', 'Close']
+        })
+    ]);
+    
+    return config;
+};
