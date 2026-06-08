@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Box, TextField, Button, Alert, InputAdornment, 
     CircularProgress, Typography, Link, Divider, useMediaQuery,
-    Stack
+    Stack  
 } from '@mui/material';
 import { Lock, Email, Security } from '@mui/icons-material';
 import API from '../../services/api';
@@ -39,132 +39,118 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
 
     const redirectUserByRole = (role) => {
         if (redirectPath && redirectPath !== '/' && !redirectPath.includes('/connexion')) {
-            navigate(decodeURIComponent(redirectPath));
+            navigate(decodeURIComponent(redirectPath), { replace: true });
             return;
         }
 
         const activeRole = role || localStorage.getItem('role'); 
 
-        if (activeRole === 'SUPER_ADMIN') navigate('/super-admin-dashboard');
-        else if (activeRole === 'ADMIN_ENTREPRISE') navigate('/admin-dashboard');
-        else if (activeRole === 'EMPLOYE') navigate('/employe-dashboard');
-        else if (activeRole === 'UTILISATEUR') navigate('/user-dashboard');
-        else navigate('/user-dashboard');
+        if (activeRole === 'SUPER_ADMIN') navigate('/super-admin-dashboard', { replace: true });
+        else if (activeRole === 'ADMIN_ENTREPRISE') navigate('/admin-dashboard', { replace: true });
+        else if (activeRole === 'EMPLOYE') navigate('/employe-dashboard', { replace: true });
+        else if (activeRole === 'UTILISATEUR') navigate('/user-dashboard', { replace: true });
+        else navigate('/user-dashboard', { replace: true });
     };
 
-   const handleLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-        console.log('📤 Envoi requête avec:', { email: email.trim().toLowerCase(), motDePasse: '***' });
-        
-        const response = await API.post('/connexion', { 
-            email: email.trim().toLowerCase(), 
-            motDePasse 
-        });
-        
-        console.log('📥 Réponse reçue:', response);
-        console.log('📦 Données:', response.data);
-        console.log('🔑 accessToken:', response.data.accessToken);
-        
-        if (response.data.necessiteMfa) {
-            console.log('🔐 MFA requis');
-            setIsMfaRequired(true);
-            setError('');
-        } else {
-            console.log('✅ Connexion réussie, stockage token...');
+    const handleLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await API.post('/connexion', { 
+                email: email.trim().toLowerCase(), 
+                motDePasse 
+            });
             
-            if (response.data.accessToken) {
-                localStorage.setItem('accessToken', response.data.accessToken);
-                console.log('✅ Token stocké');
+            if (response.data.necessiteMfa) {
+                setIsMfaRequired(true);
+                setError('');
             } else {
-                console.error('❌ PAS DE TOKEN DANS LA RÉPONSE !');
-                console.error('Structure complète:', Object.keys(response.data));
+                // Stocker le token dans localStorage
+                const accessToken = response.data.accessToken;
+                if (accessToken) {
+                    localStorage.setItem('accessToken', accessToken);
+                }
+                
+                localStorage.setItem('role', response.data.role);
+                localStorage.setItem('user_info', JSON.stringify({
+                    prenom: response.data.prenom,
+                    nom: response.data.nom,
+                    email: email
+                }));
+                
+                if (onLoginSuccess) onLoginSuccess();
+                redirectUserByRole(response.data.role);
+            }
+        } catch (err) {
+            const errorMessage = err.response?.data?.erreur || err.response?.data?.message || "Identifiants incorrects.";
+            setError(errorMessage);
+            setErrorKey(prev => prev + 1);
+        } finally { 
+            setLoading(false); 
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await API.post('/verifier-otp', { 
+                email: email.trim().toLowerCase(), 
+                code: otpCode.trim() 
+            });
+            
+            // Stocker le token dans localStorage
+            const accessToken = response.data.accessToken;
+            if (accessToken) {
+                localStorage.setItem('accessToken', accessToken);
             }
             
             localStorage.setItem('role', response.data.role);
             localStorage.setItem('user_info', JSON.stringify({
                 prenom: response.data.prenom,
                 nom: response.data.nom,
-                email: response.data.email || email
+                email: response.data.email
             }));
-            
+
             if (onLoginSuccess) onLoginSuccess();
-            setTimeout(() => redirectUserByRole(response.data.role), 1000);
+            redirectUserByRole(response.data.role);
+        } catch (err) {
+            const errorMessage = err.response?.data?.erreur || "Code OTP invalide ou expiré.";
+            setError(errorMessage);
+            setErrorKey(prev => prev + 1);
+        } finally { 
+            setLoading(false); 
         }
-    } catch (err) {
-        console.error('❌ Erreur complète:', err);
-        console.error('❌ Response error:', err.response);
-        console.error('❌ Data error:', err.response?.data);
-        
-        const errorMessage = err.response?.data?.erreur || err.response?.data?.message || "Identifiants incorrects.";
-        setError(errorMessage);
-        setErrorKey(prev => prev + 1);
-    } finally { 
-        setLoading(false); 
-    }
-};
+    };
 
-const handleVerifyOtp = async () => {
-    setLoading(true);
-    setError('');
-    try {
-        const response = await API.post('/verifier-otp', { 
-            email: email.trim().toLowerCase(), 
-            code: otpCode.trim() 
-        });
-        
-        // 🔧 CORRECTION : Utiliser 'accessToken' au lieu de 'token'
-        if (response.data.accessToken) {
-            localStorage.setItem('accessToken', response.data.accessToken);
+    const handleGoogleSuccess = async (googleData) => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await API.post('/auth/google', { token: googleData.credential });
+
+            const accessToken = response.data.accessToken;
+            if (accessToken) {
+                localStorage.setItem('accessToken', accessToken);
+            }
+
+            localStorage.setItem('role', response.data.role);
+            localStorage.setItem('user_info', JSON.stringify({
+                prenom: response.data.prenom,
+                nom: response.data.nom,
+                email: response.data.email
+            }));
+
+            if (onLoginSuccess) onLoginSuccess();
+            redirectUserByRole(response.data.role);
+        } catch (err) {
+            const errorMessage = err.response?.data?.erreur || "Échec de la connexion avec Google.";
+            setError(errorMessage);
+            setErrorKey(prev => prev + 1);
+        } finally { 
+            setLoading(false); 
         }
-        
-        localStorage.setItem('role', response.data.role);
-        localStorage.setItem('user_info', JSON.stringify({
-            prenom: response.data.prenom,
-            nom: response.data.nom,
-            email: response.data.email
-        }));
-
-        if (onLoginSuccess) onLoginSuccess();
-        setTimeout(() => redirectUserByRole(response.data.role), 1000);
-    } catch (err) {
-        const errorMessage = err.response?.data?.erreur || "Code OTP invalide ou expiré.";
-        setError(errorMessage);
-        setErrorKey(prev => prev + 1);
-    } finally { 
-        setLoading(false); 
-    }
-};
-
-const handleGoogleSuccess = async (googleData) => {
-    setLoading(true);
-    setError('');
-    try {
-        const response = await API.post('/auth/google', { token: googleData.credential });
-
-        // 🔧 CORRECTION : Utiliser 'accessToken' au lieu de 'token'
-        if (response.data.accessToken) {
-            localStorage.setItem('accessToken', response.data.accessToken);
-        }
-        
-        localStorage.setItem('role', response.data.role);
-        localStorage.setItem('user_info', JSON.stringify({
-            prenom: response.data.prenom,
-            nom: response.data.nom,
-            email: response.data.email
-        }));
-
-        if (onLoginSuccess) onLoginSuccess();
-        setTimeout(() => redirectUserByRole(response.data.role), 1000);
-    } catch (err) {
-        const errorMessage = err.response?.data?.erreur || "Échec de la connexion avec Google.";
-        setError(errorMessage);
-        setErrorKey(prev => prev + 1);
-    } finally { 
-        setLoading(false); 
-    }
-};
+    };
 
     const getAlertSeverity = () => {
         if (!error) return "error";
