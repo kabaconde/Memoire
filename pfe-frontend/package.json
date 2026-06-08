@@ -29,13 +29,12 @@
     "react-signature-canvas": "^1.0.3",
     "recharts": "^2.12.0",
     "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test",
-    "eject": "react-scripts eject"
-  },
+  },"scripts": {
+  "start": "react-app-rewired start",
+  "build": "GENERATE_SOURCEMAP=false react-app-rewired build",
+  "test": "react-app-rewired test",
+  "eject": "react-scripts eject"
+},
   "eslintConfig": {
     "extends": [
       "react-app",
