@@ -10,9 +10,9 @@ ARG CACHE_BUST=$(date +%s)
 COPY package*.json ./
 RUN npm install
 
-# Ajouter un script post-install pour créer un alias
-RUN mkdir -p node_modules/@mui/material && \
-    echo "module.exports = require('@mui/icons-material/Close');" > node_modules/@mui/material/Close.js
+# 🔧 PATCH : Créer l'export manquant dans @mui/material
+RUN echo "exports.Close = require('@mui/icons-material/Close');" >> node_modules/@mui/material/index.js
+RUN echo "exports.default = exports;" >> node_modules/@mui/material/index.js
 
 # Copier le code source
 COPY . ./
@@ -24,7 +24,6 @@ RUN npm run build
 FROM nginx:alpine
 
 COPY --from=builder /build/build /usr/share/nginx/html
-COPY --from=builder /build/node_modules/@mui/material/Close.js /usr/share/nginx/html/
 
 EXPOSE 80
 
