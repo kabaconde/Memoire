@@ -19,8 +19,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/utilisateur/pki")
 @CrossOrigin(origins = {
+    "https://localhost:3000",
     "http://localhost:3000",
-    "https://frontendmemoire.onrender.com"
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class PkiUtilisateurControleur {
 

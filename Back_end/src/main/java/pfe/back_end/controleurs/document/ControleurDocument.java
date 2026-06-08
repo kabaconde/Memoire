@@ -27,8 +27,9 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/documents")
 @CrossOrigin(origins = {
-        "https://localhost:3000",
-        "http://localhost:3000"
+    "https://localhost:3000",
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class ControleurDocument {
 

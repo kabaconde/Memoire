@@ -30,8 +30,9 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin/pki")
 @CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://frontendmemoire.onrender.com"
+    "https://localhost:3000",
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class PkiAdminController {
 

@@ -18,9 +18,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = {
-    "http://localhost:3000"
-
-   // "https://trustsign-frontend.onrender.com"
+    "https://localhost:3000",
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class InscriptionController {
 

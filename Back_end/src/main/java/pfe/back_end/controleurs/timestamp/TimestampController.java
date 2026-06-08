@@ -12,10 +12,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/horodatage")
-@CrossOrigin(origins = {"https://localhost:3000"
-//"https://trustsign-frontend.onrender.com"
-
-
+@CrossOrigin(origins = {
+    "https://localhost:3000",
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class TimestampController {
 

@@ -19,8 +19,8 @@ import java.util.Map;
 @RequestMapping("/api")
 @CrossOrigin(origins = {
     "https://localhost:3000",
-    "http://localhost:3000"
-  // "https://trustsign-frontend.onrender.com"
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class ProfileControleur {
 

@@ -11,9 +11,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = {"https://localhost:3000" //"https://trustsign-frontend.onrender.com"
-
-
+@CrossOrigin(origins = {
+    "https://localhost:3000",
+    "http://localhost:3000",
+    "https://memoirefrontend.onrender.com"  // À AJOUTER
 }, allowCredentials = "true")
 public class ImageSignatureControleur {
 
