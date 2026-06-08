@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// URL en dur pour tester
-const API_BASE_URL = 'https://memoireback.onrender.com';
+// 🔧 CORRECTION : Ajouter /api à la fin de l'URL
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const API = axios.create({
     baseURL: API_BASE_URL,
@@ -11,22 +11,27 @@ const API = axios.create({
     }
 });
 
-// Intercepteur pour ajouter /api si nécessaire
+// Intercepteur pour ajouter /api si nécessaire (MAINTENANT CORRIGÉ)
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     
-    if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
-        config.url = `/api${config.url}`;
-    }
+    // Ne plus ajouter /api car la base URL le contient déjà
+    // Supprimer ou commenter cette partie
+    // if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
+    //     config.url = `/api${config.url}`;
+    // }
+    
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     return config;
 });
 
 API.interceptors.response.use(
     (response) => response,
     (error) => {
+        console.error('[API Error]', error.response?.status, error.response?.data);
         if (error.response?.status === 401) {
             localStorage.clear();
             window.location.href = '/';
