@@ -1,7 +1,22 @@
+// src/services/api.js
 import axios from 'axios';
 
-// 🔧 CORRECTION : Ajouter /api à la fin de l'URL
 const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
+// Liste des routes publiques (ne doivent PAS avoir de token)
+const PUBLIC_ROUTES = [
+    '/connexion',
+    '/verifier-otp',
+    '/send-otp',
+    '/signature/send-otp',
+    '/signature/details',
+    '/signature/apercu',
+    '/auth/demande-inscription',
+    '/auth/finaliser-inscription',
+    '/mot-de-passe-oublie',
+    '/reinitialiser-mot-de-passe',
+    '/auth/check'
+];
 
 const API = axios.create({
     baseURL: API_BASE_URL,
@@ -11,20 +26,19 @@ const API = axios.create({
     }
 });
 
-// Intercepteur pour ajouter /api si nécessaire (MAINTENANT CORRIGÉ)
+// Intercepteur pour ajouter le token SEULEMENT pour les routes non publiques
 API.interceptors.request.use((config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    // Vérifier si la route est publique
+    const isPublicRoute = PUBLIC_ROUTES.some(route => config.url.includes(route));
+    
+    if (!isPublicRoute) {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
     
-    // Ne plus ajouter /api car la base URL le contient déjà
-    // Supprimer ou commenter cette partie
-    // if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
-    //     config.url = `/api${config.url}`;
-    // }
-    
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url} - Public: ${isPublicRoute}`);
     return config;
 });
 
@@ -33,8 +47,12 @@ API.interceptors.response.use(
     (error) => {
         console.error('[API Error]', error.response?.status, error.response?.data);
         if (error.response?.status === 401) {
-            localStorage.clear();
-            window.location.href = '/';
+            // Ne pas rediriger pour les routes publiques
+            const isPublicError = PUBLIC_ROUTES.some(route => error.config?.url?.includes(route));
+            if (!isPublicError) {
+                localStorage.clear();
+                window.location.href = '/';
+            }
         }
         return Promise.reject(error);
     }
