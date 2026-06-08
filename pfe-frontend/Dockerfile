@@ -7,8 +7,8 @@ WORKDIR /build
 COPY package*.json ./
 RUN npm install
 
-# 🔧 CORRECTION RADICALE : Injection d'un export ESM valide pour tromper le compilateur
-RUN sed -i '1s/^/export { CloseIcon as Close } from "@mui\/icons-material";\\n/' node_modules/@mui/material/index.js
+# 🔧 PATCH PROPRE : Injection de l'export ESM avec un vrai saut de ligne physique
+RUN sed -i '1i export { CloseIcon as Close } from "@mui/icons-material";' node_modules/@mui/material/index.js
 
 # Copier le reste du code source
 COPY . ./
