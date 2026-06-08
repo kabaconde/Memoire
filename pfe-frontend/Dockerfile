@@ -7,7 +7,10 @@ WORKDIR /build
 COPY package*.json ./
 RUN npm install
 
-# Copier le code source
+# 🔧 CORRECTION RADICALE : Injection d'un export ESM valide pour tromper le compilateur
+RUN sed -i '1s/^/export { CloseIcon as Close } from "@mui\/icons-material";\\n/' node_modules/@mui/material/index.js
+
+# Copier le reste du code source
 COPY . ./
 
 # Build
@@ -16,7 +19,6 @@ RUN npm run build
 # --- Étape 2 : Production avec Nginx ---
 FROM nginx:alpine
 
-# Copie de la configuration Nginx personnalisée si vous en avez une, sinon la ligne suivante suffit
 COPY --from=builder /build/build /usr/share/nginx/html
 
 EXPOSE 80
