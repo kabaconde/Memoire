@@ -1,3 +1,6 @@
+# pfe-frontend/.dockerignore
 node_modules
 build
-.cache
+.git
+.gitignore
+*.log
