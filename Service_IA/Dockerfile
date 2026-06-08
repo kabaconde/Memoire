@@ -10,10 +10,9 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copier et installer les dépendances Python - CORRECTION ICI
-# Le fichier s'appelle exigences.txt et non requirements.txt
+# Copier et installer les dépendances Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # --- Étape 2 : Image finale ---
 FROM python:3.11-slim
@@ -25,21 +24,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copier les packages Python depuis le builder
-COPY --from=builder /root/.local /root/.local
+# Copier les packages Python depuis le builder (chemin complet)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copier le code source
 COPY . ./
 
-# Mettre à jour PATH
-ENV PATH=/root/.local/bin:$PATH
-
-# Créer un utilisateur non-root pour la sécurité
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --gid 1001 appuser && \
-    chown -R appuser:appgroup /app
-
-USER appuser
+# NE PAS créer d'utilisateur non-root pour éviter les problèmes
+# (ou garder mais avec les bons chemins)
 
 EXPOSE 8000
 
