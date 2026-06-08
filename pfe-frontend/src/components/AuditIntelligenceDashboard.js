@@ -29,7 +29,7 @@ import {
 } from 'recharts';
 import axios from 'axios';
 
-const IA_API_URL = process.env.REACT_APP_IA_API_URL || 'http://localhost:8000';
+const IA_API_URL = process.env.REACT_APP_IA_API_URL || 'https://iamemoire-yom8.onrender.com';
 
 // Constantes
 const COLORS = {
@@ -55,12 +55,16 @@ const AuditIntelligenceDashboard = () => {
     const [selectedAnomaly, setSelectedAnomaly] = useState(null);
     const [detailOpen, setDetailOpen] = useState(false);
     const [page, setPage] = useState(1);
-    const [chartType, setChartType] = useState('donut'); // 'donut', 'barHorizontal', 'barVertical', 'table'
+    const [chartType, setChartType] = useState('donut');
     const isMobile = useMediaQuery('(max-width:900px)');
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     useEffect(() => {
         fetchData();
-        // Récupérer le type de graphique sauvegardé
         const savedChartType = localStorage.getItem('preferredChartType');
         if (savedChartType && ['donut', 'barHorizontal', 'barVertical', 'table'].includes(savedChartType)) {
             setChartType(savedChartType);
@@ -70,10 +74,19 @@ const AuditIntelligenceDashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
+            const token = getToken();
             const jours = 7;
             const [detection, resume] = await Promise.all([
-                axios.get(`${IA_API_URL}/api/ia/avancee/detection-complete?jours=${jours}`),
-                axios.get(`${IA_API_URL}/api/ia/avancee/attaques/resume?jours=${jours}`)
+                axios.get(`${IA_API_URL}/api/ia/avancee/detection-complete?jours=${jours}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                }),
+                axios.get(`${IA_API_URL}/api/ia/avancee/attaques/resume?jours=${jours}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                })
             ]);
             setData({
                 detection: detection.data,

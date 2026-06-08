@@ -10,13 +10,18 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_IA_URL = process.env.REACT_APP_IA_API_URL || 'http://localhost:8000';
+const API_IA_URL = process.env.REACT_APP_IA_API_URL || 'https://iamemoire-yom8.onrender.com';
 
 const ResumeDocument = ({ contenu, nomFichier, onResumeGenere }) => {
     const [chargement, setChargement] = useState(false);
     const [resume, setResume] = useState(null);
     const [expanded, setExpanded] = useState(true);
     const [erreur, setErreur] = useState(null);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     const genererResume = async () => {
         if (!contenu || contenu.length < 100) {
@@ -28,9 +33,15 @@ const ResumeDocument = ({ contenu, nomFichier, onResumeGenere }) => {
         setErreur(null);
 
         try {
+            const token = getToken();
             const response = await axios.post(`${API_IA_URL}/api/ia/avancee/documents/resume`, {
                 contenu: contenu.slice(0, 8000),
                 nom_fichier: nomFichier
+            }, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (response.data.success) {
@@ -168,5 +179,4 @@ const ResumeDocument = ({ contenu, nomFichier, onResumeGenere }) => {
     );
 };
 
-// ⭐ EXPORT PAR DÉFAUT (CORRECT)
 export default ResumeDocument;

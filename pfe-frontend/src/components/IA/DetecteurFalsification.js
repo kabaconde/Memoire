@@ -11,14 +11,19 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const DetecteurFalsification = ({ fichier, onAnalyseComplete }) => {
     const [analyseEnCours, setAnalyseEnCours] = useState(false);
     const [resultat, setResultat] = useState(null);
     const [erreur, setErreur] = useState(null);
-    const [analyseActive, setAnalyseActive] = useState(false); // Nouveau : pour fermer/réduire
+    const [analyseActive, setAnalyseActive] = useState(false);
     const [hashOriginal, setHashOriginal] = useState(null);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     // Calculer le hash original au chargement du fichier
     useEffect(() => {
@@ -52,18 +57,20 @@ const DetecteurFalsification = ({ fichier, onAnalyseComplete }) => {
         const formData = new FormData();
         formData.append('fichier', fichier);
         
-        // Ajouter le hash original si disponible
         if (hashOriginal) {
             formData.append('hashOriginal', hashOriginal);
         }
 
         try {
+            const token = getToken();
             const reponse = await axios.post(
                 `${API_BASE_URL}/ia/securite/analyser-falsification`,
                 formData,
                 { 
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    withCredentials: true
+                    headers: { 
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
                 }
             );
 

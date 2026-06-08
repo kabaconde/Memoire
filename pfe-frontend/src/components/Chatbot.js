@@ -14,17 +14,17 @@ import {
 } from '@mui/icons-material';
 
 // Configuration de l'API du service IA
-const IA_API_URL = process.env.REACT_APP_IA_API_URL || 'http://localhost:8000';
+const IA_API_URL = process.env.REACT_APP_IA_API_URL || 'https://iamemoire-yom8.onrender.com';
 
-
-
-// Fonction pour les requêtes API
+// Fonction pour les requêtes API avec token
 const fetchAPI = async (url, options = {}) => {
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const response = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
             ...options.headers
         }
     });
@@ -99,21 +99,24 @@ const Chatbot = () => {
         setLoading(true);
 
         try {
-            // Récupérer le rôle de l'utilisateur depuis le localStorage
-            const userStr = localStorage.getItem('user');
-            const user = userStr ? JSON.parse(userStr) : null;
+            // Récupérer les informations de l'utilisateur depuis localStorage
+            const userInfoStr = localStorage.getItem('user_info');
+            const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
+            const role = localStorage.getItem('role');
             
             // Appel au service IA déployé sur Render
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             const response = await fetch(`${IA_API_URL}/api/chatbot/message`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
                 },
                 body: JSON.stringify({
                     message: text,
-                    user_email: user?.email,
-                    user_role: user?.role
+                    user_email: userInfo?.email,
+                    user_role: role
                 })
             });
             
