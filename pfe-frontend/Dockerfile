@@ -23,6 +23,10 @@ FROM nginx:alpine
 # Installer curl pour le HEALTHCHECK
 RUN apk add --no-cache curl
 
+# 🔽 AJOUT DE LA CONFIGURATION APPLICATIVE NGINX 🔽
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copier le build de React
 COPY --from=builder /build/build /usr/share/nginx/html
 
 EXPOSE 80
