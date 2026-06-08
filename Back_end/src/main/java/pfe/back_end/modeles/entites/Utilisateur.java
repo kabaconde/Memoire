@@ -3,6 +3,7 @@ package pfe.back_end.modeles.entites;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -63,18 +64,22 @@ public class Utilisateur {
     private LocalDateTime expirationDate;
 
 
+
+
     @Column(name = "confirmation_token")
     private String confirmationToken;
 
     @Column(name = "confirmation_expiration")
     private LocalDateTime confirmationExpiration;
 
+    
+
+
     @Column(name = "confirme")
-    private boolean confirme = false;
+private Boolean confirme = false;
 
     @Column(name = "demande_statut")
     private String demandeStatut = "PENDING";
-
 
     public String getConfirmationToken() { return confirmationToken; }
     public void setConfirmationToken(String confirmationToken) { this.confirmationToken = confirmationToken; }
@@ -82,14 +87,22 @@ public class Utilisateur {
     public LocalDateTime getConfirmationExpiration() { return confirmationExpiration; }
     public void setConfirmationExpiration(LocalDateTime confirmationExpiration) { this.confirmationExpiration = confirmationExpiration; }
 
-    public boolean isConfirme() { return confirme; }
-    public void setConfirme(boolean confirme) { this.confirme = confirme; }
+   
+
+
+
+    public Boolean isConfirme() { return confirme; }
+    public void setConfirme(Boolean confirme) { this.confirme = confirme; }
 
     public String getDemandeStatut() { return demandeStatut; }
     public void setDemandeStatut(String demandeStatut) { this.demandeStatut = demandeStatut; }
 
     @Column(name = "date_creation")
     private LocalDateTime dateCreation;
+
+    public LocalDateTime getDateCreation() { return dateCreation; }
+    public void setDateCreation(LocalDateTime dateCreation) { this.dateCreation = dateCreation; }
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -117,7 +130,16 @@ public class Utilisateur {
 
     public String getHsmAlias() { return hsmAlias; }
     public void setHsmAlias(String hsmAlias) { this.hsmAlias = hsmAlias; }
+
+    public byte[] getClePrivee() { return clePrivee; }
+    public void setClePrivee(byte[] clePrivee) { this.clePrivee = clePrivee; }
+
+    public String getTokenActivation() { return tokenActivation; }
     public void setTokenActivation(String tokenActivation) { this.tokenActivation = tokenActivation; }
+
+    public boolean isMfaActive() { return mfaActive; }
+    public void setMfaActive(boolean mfaActive) { this.mfaActive = mfaActive; }
+
     public String getCodeMfa() { return codeMfa; }
     public void setCodeMfa(String codeMfa) { this.codeMfa = codeMfa; }
 
@@ -136,5 +158,6 @@ public class Utilisateur {
     public String getPhotoProfil() { return photoProfil; }
     public void setPhotoProfil(String photoProfil) { this.photoProfil = photoProfil; }
 
-
+    public LocalDateTime getExpirationDate() { return expirationDate; }
+    public void setExpirationDate(LocalDateTime expirationDate) { this.expirationDate = expirationDate; }
 }

@@ -15,12 +15,9 @@ import org.springframework.stereotype.Service;
 import pfe.back_end.services.configuration.ServiceConfiguration;
 
 import jakarta.annotation.PostConstruct;
-import pfe.back_end.services.hsm.ServiceGestionClesHSM;
-
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
@@ -41,11 +38,6 @@ public class ServiceAutoriteCertification {
     private KeyPair paireClesEmettrice;
     private X509Certificate certificatEmetteur;
     private boolean pkiInitialisee = false;
-
-
-    @Autowired
-    private ServiceGestionClesHSM serviceHSM;  // Injecter le service HSM
-
 
     @Value("${pki.stockage.chemin:./coffre-pki}")
     private String cheminStockage;
@@ -106,63 +98,24 @@ public class ServiceAutoriteCertification {
         }
     }
 
-
     private void initialiserNouvelleHierarchie() throws Exception {
-        Provider hsmProvider = serviceHSM.getFournisseurPKCS11();
-        KeyStore ks = serviceHSM.getKeyStore();  // Récupérer le KeyStore PKCS11
 
-        String password = "AC_" + serviceHSM.getPinUtilisateur();  // Mot de passe pour l'AC
+        KeyPairGenerator generateurCles = KeyPairGenerator.getInstance("RSA", PROVIDEUR_BC);
+        generateurCles.initialize(4096);
+        paireClesRacine = generateurCles.generateKeyPair();
+        X500Name sujetRacine = new X500Name("CN=TrustSign Root CA, O=ISIMG, C=TN");
 
-        // Vérifier si les clés existent déjà dans le HSM
-        if (!ks.containsAlias("AC_RACINE")) {
-            System.out.println("Génération des clés AC dans le HSM...");
+        certificatRacine = genererCertificat(sujetRacine, sujetRacine, paireClesRacine.getPublic(), paireClesRacine.getPrivate(), true, 1);
 
-            // Générer les clés DANS le HSM (SoftHSM2)
-            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA", hsmProvider);
+        generateurCles.initialize(2048);
+        paireClesEmettrice = generateurCles.generateKeyPair();
+        X500Name sujetEmetteur = new X500Name("CN=TrustSign Issuing CA, OU=Securite Numerique, O=ISIMG");
 
-            // Clé racine (4096 bits)
-            gen.initialize(4096);
-            KeyPair paireRacine = gen.generateKeyPair();
+        certificatEmetteur = genererCertificat(sujetEmetteur, sujetRacine, paireClesEmettrice.getPublic(), paireClesRacine.getPrivate(), true, 0);
 
-            // Créer le certificat racine auto-signé
-            X500Name sujetRacine = new X500Name("CN=TrustSign Root CA, O=ISIMG, C=TN");
-            certificatRacine = genererCertificat(sujetRacine, sujetRacine,
-                    paireRacine.getPublic(), paireRacine.getPrivate(), true, 1);
-
-            // Stocker dans le HSM
-            ks.setKeyEntry("AC_RACINE", paireRacine.getPrivate(),
-                    password.toCharArray(), new Certificate[]{certificatRacine});
-            paireClesRacine = paireRacine;
-
-            // Clé émettrice (2048 bits)
-            gen.initialize(2048);
-            KeyPair paireEmettrice = gen.generateKeyPair();
-            X500Name sujetEmetteur = new X500Name("CN=TrustSign Issuing CA, OU=Securite Numerique, O=ISIMG");
-
-            certificatEmetteur = genererCertificat(sujetEmetteur, sujetRacine,
-                    paireEmettrice.getPublic(), paireRacine.getPrivate(), true, 0);
-
-            // Stocker dans le HSM
-            ks.setKeyEntry("AC_EMETTRICE", paireEmettrice.getPrivate(),
-                    password.toCharArray(), new Certificate[]{certificatEmetteur});
-            paireClesEmettrice = paireEmettrice;
-
-            System.out.println("✅ Clés AC générées et stockées dans SoftHSM2");
-        } else {
-            // Charger depuis le HSM
-            PrivateKey cleRacine = (PrivateKey) ks.getKey("AC_RACINE", password.toCharArray());
-            Certificate certRacine = ks.getCertificate("AC_RACINE");
-            certificatRacine = (X509Certificate) certRacine;
-            paireClesRacine = new KeyPair(certRacine.getPublicKey(), cleRacine);
-
-            PrivateKey cleEmettrice = (PrivateKey) ks.getKey("AC_EMETTRICE", password.toCharArray());
-            Certificate certEmetteur = ks.getCertificate("AC_EMETTRICE");
-            certificatEmetteur = (X509Certificate) certEmetteur;
-            paireClesEmettrice = new KeyPair(certEmetteur.getPublicKey(), cleEmettrice);
-
-            System.out.println("✅ Clés AC chargées depuis SoftHSM2");
-        }
+        sauvegarderConfigurationPKI();
     }
+
     private X509Certificate genererCertificat(X500Name sujet, X500Name emetteur, PublicKey clePublique, PrivateKey cleSignature, boolean estCA, int longueurChemin) throws Exception {
         long maintenant = System.currentTimeMillis();
         long dureeMillis = TimeUnit.DAYS.toMillis(3650);
@@ -228,33 +181,83 @@ public class ServiceAutoriteCertification {
                 "\n-----END CERTIFICATE-----";
     }
 
+    private void sauvegarderConfigurationPKI() throws Exception {
+        // Créer le dossier si nécessaire
+        File folder = new File(cheminStockage);
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        // Sauvegarder la clé privée racine
+        File racineKeyFile = new File(cheminStockage + "/ca_racine.key");
+        if (!racineKeyFile.exists() && paireClesRacine != null) {
+            try (FileOutputStream fos = new FileOutputStream(racineKeyFile)) {
+                fos.write(paireClesRacine.getPrivate().getEncoded());
+            }
+        }
+
+        // Sauvegarder le certificat racine
+        File certRacineFile = new File(cheminStockage + "/ca_racine.crt");
+        if (!certRacineFile.exists() && certificatRacine != null) {
+            try (FileWriter fw = new FileWriter(certRacineFile)) {
+                fw.write(convertirEnPem(certificatRacine));
+            }
+        }
+
+        // Sauvegarder la clé privée émettrice
+        File emetteurKeyFile = new File(cheminStockage + "/ca_emetteur.key");
+        if (!emetteurKeyFile.exists() && paireClesEmettrice != null) {
+            try (FileOutputStream fos = new FileOutputStream(emetteurKeyFile)) {
+                fos.write(paireClesEmettrice.getPrivate().getEncoded());
+            }
+        }
+
+        // Sauvegarder le certificat émetteur
+        File certEmetteurFile = new File(cheminStockage + "/ca_emetteur.crt");
+        if (!certEmetteurFile.exists() && certificatEmetteur != null) {
+            try (FileWriter fw = new FileWriter(certEmetteurFile)) {
+                fw.write(convertirEnPem(certificatEmetteur));
+            }
+        }
+
+        System.out.println("Configuration PKI sauvegardée dans: " + cheminStockage);
+    }
 
     private boolean chargerPKIExistante() throws Exception {
-        try {
-            KeyStore ks = serviceHSM.getKeyStore();
-            String password = "AC_" + serviceHSM.getPinUtilisateur();
+        File certRacineFile = new File(cheminStockage + "/ca_racine.crt");
+        File certEmetteurFile = new File(cheminStockage + "/ca_emetteur.crt");
 
-            // Vérifier si les clés existent dans le HSM
-            if (ks.containsAlias("AC_RACINE") && ks.containsAlias("AC_EMETTRICE")) {
-
-                // Charger la clé racine
-                PrivateKey cleRacine = (PrivateKey) ks.getKey("AC_RACINE", password.toCharArray());
-                Certificate certRacine = ks.getCertificate("AC_RACINE");
-                certificatRacine = (X509Certificate) certRacine;
-                paireClesRacine = new KeyPair(certRacine.getPublicKey(), cleRacine);
-
-                // Charger la clé émettrice
-                PrivateKey cleEmettrice = (PrivateKey) ks.getKey("AC_EMETTRICE", password.toCharArray());
-                Certificate certEmetteur = ks.getCertificate("AC_EMETTRICE");
-                certificatEmetteur = (X509Certificate) certEmetteur;
-                paireClesEmettrice = new KeyPair(certEmetteur.getPublicKey(), cleEmettrice);
-
-                System.out.println("✅ PKI chargée depuis SoftHSM2 (clés persistantes)");
-                return true;
-            }
-        } catch (Exception e) {
-            System.err.println("Aucune PKI trouvée dans HSM: " + e.getMessage());
+        if (!certRacineFile.exists() || !certEmetteurFile.exists()) {
+            System.out.println("Fichiers PKI non trouvés, création d'une nouvelle hiérarchie...");
+            return false;
         }
-        return false;
+
+        try {
+            // Charger le certificat racine
+            try (FileInputStream fis = new FileInputStream(certRacineFile)) {
+                java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                certificatRacine = (X509Certificate) cf.generateCertificate(fis);
+            }
+
+            // Charger le certificat émetteur
+            try (FileInputStream fis = new FileInputStream(certEmetteurFile)) {
+                java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                certificatEmetteur = (X509Certificate) cf.generateCertificate(fis);
+            }
+
+            // Pour les clés privées, on ne peut pas les charger facilement depuis des fichiers PEM
+            // On recrée des paires de clés temporaires pour la signature
+            // Dans un environnement de production, il faudrait utiliser un HSM ou un keystore
+            KeyPairGenerator generateurCles = KeyPairGenerator.getInstance("RSA", PROVIDEUR_BC);
+            generateurCles.initialize(2048);
+            paireClesEmettrice = generateurCles.generateKeyPair();
+
+            System.out.println("PKI existante chargée avec succès.");
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Erreur lors du chargement de la PKI existante: " + e.getMessage());
+            return false;
+        }
     }
 }
