@@ -56,19 +56,32 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
     setLoading(true);
     setError('');
     try {
+        console.log('📤 Envoi requête avec:', { email: email.trim().toLowerCase(), motDePasse: '***' });
+        
         const response = await API.post('/connexion', { 
             email: email.trim().toLowerCase(), 
             motDePasse 
         });
         
+        console.log('📥 Réponse reçue:', response);
+        console.log('📦 Données:', response.data);
+        console.log('🔑 accessToken:', response.data.accessToken);
+        
         if (response.data.necessiteMfa) {
+            console.log('🔐 MFA requis');
             setIsMfaRequired(true);
             setError('');
         } else {
-            // 🔧 CORRECTION : Utiliser 'accessToken' au lieu de 'token'
+            console.log('✅ Connexion réussie, stockage token...');
+            
             if (response.data.accessToken) {
                 localStorage.setItem('accessToken', response.data.accessToken);
+                console.log('✅ Token stocké');
+            } else {
+                console.error('❌ PAS DE TOKEN DANS LA RÉPONSE !');
+                console.error('Structure complète:', Object.keys(response.data));
             }
+            
             localStorage.setItem('role', response.data.role);
             localStorage.setItem('user_info', JSON.stringify({
                 prenom: response.data.prenom,
@@ -80,6 +93,10 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
             setTimeout(() => redirectUserByRole(response.data.role), 1000);
         }
     } catch (err) {
+        console.error('❌ Erreur complète:', err);
+        console.error('❌ Response error:', err.response);
+        console.error('❌ Data error:', err.response?.data);
+        
         const errorMessage = err.response?.data?.erreur || err.response?.data?.message || "Identifiants incorrects.";
         setError(errorMessage);
         setErrorKey(prev => prev + 1);
