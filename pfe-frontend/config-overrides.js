@@ -3,18 +3,20 @@ const path = require('path');
 const fs = require('fs');
 
 module.exports = function override(config, env) {
-    // 1. Créer dynamiquement un fichier de pont temporaire s'il n'existe pas déjà
     const bridgePath = path.resolve(__dirname, 'src/mui-bridge-fixed.js');
     
+    // Création du fichier pont avec les bons chemins absolus
     if (!fs.existsSync(bridgePath)) {
         const bridgeContent = `
-export * from '@mui/material';
+import * as mui from '${require.resolve('@mui/material').replace(/\\/g, '/')}';
+export * from '${require.resolve('@mui/material').replace(/\\/g, '/')}';
 export { default as Close } from '@mui/icons-material/Close';
+export default mui.default;
         `;
         fs.writeFileSync(bridgePath, bridgeContent.trim());
     }
 
-    // 2. Forcer Webpack à rediriger l'accès global de @mui/material vers notre pont
+    // Appliquer l'alias global sans créer de boucle
     config.resolve.alias = {
         ...config.resolve.alias,
         '@mui/material$': bridgePath
