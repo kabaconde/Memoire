@@ -8,13 +8,13 @@ import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import ResumeDocument from '../../components/IA/ResumeDocument';
 import DetecteurFalsification from '../../components/IA/DetecteurFalsification';
-import * as pdfjsLib from 'pdfjs-dist';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 // Configuration du worker PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import * as pdfjsLib from 'pdfjs-dist';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
