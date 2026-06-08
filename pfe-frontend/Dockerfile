@@ -1,12 +1,15 @@
 # --- Étape 1 : Build React ---
 FROM node:20-alpine AS builder
 
+# Invalider le cache Docker
+ARG CACHE_BUST=$(date +%s)
+
 WORKDIR /build
 
 # Copier les fichiers de dépendances
 COPY package*.json ./
 
-# Installer les dépendances (npm install au lieu de npm ci)
+# Installer les dépendances
 RUN npm install && npm cache clean --force
 
 # Copier le code source
@@ -18,6 +21,9 @@ RUN npm run build
 # --- Étape 2 : Production avec Nginx ---
 FROM nginx:alpine
 
+# Invalider le cache Docker
+ARG CACHE_BUST=$(date +%s)
+
 # Copier la configuration Nginx personnalisée
 RUN echo 'server { \
     listen 80; \
@@ -28,12 +34,12 @@ RUN echo 'server { \
         try_files $uri $uri/ /index.html; \
     } \
     location /api/ { \
-        proxy_pass https://trustsign-backend.onrender.com/api/; \
+        proxy_pass https://memoireback.onrender.com/api/; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
     } \
     location /ia/ { \
-        proxy_pass https://trustsign-ia.onrender.com/; \
+        proxy_pass https://iamemoire-yom8.onrender.com/; \
         proxy_set_header Host $host; \
     } \
 }' > /etc/nginx/conf.d/default.conf
