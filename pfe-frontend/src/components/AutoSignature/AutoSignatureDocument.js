@@ -8,7 +8,7 @@ import DetecteurFalsification from '../IA/DetecteurFalsification';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
     const [file, setFile] = useState(null);
@@ -93,10 +93,9 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
 
     const checkUserSignature = async () => {
         try {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             const response = await fetch(`${API_BASE_URL}/utilisateur/mon-profil`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
                     'Accept': 'application/json'
@@ -228,7 +227,7 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
         setLoading(true);
         
         try {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             
             const fileHash = await calculateFileHash(file);
             console.log("🔐 Hash calculé côté client:", fileHash);
@@ -239,7 +238,6 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
             
             const uploadResponse = await fetch(`${API_BASE_URL}/documents/upload`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : ''
                 },
@@ -256,7 +254,6 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
             
             const signResponse = await fetch(`${API_BASE_URL}/signature/appliquer-auto-signature?documentId=${uploadData.id}&x=${coords.x}&y=${coords.y}&pageNumber=${coords.page}&displayWidth=${mobile ? 400 : 800}&displayHeight=${coords.displayPageHeight}`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : ''
                 }
@@ -280,7 +277,6 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
                 try {
                     await fetch(`${API_BASE_URL}/documents/supprimer/${uploadData.id}`, {
                         method: 'DELETE',
-                        credentials: 'include',
                         headers: { 'Authorization': token ? `Bearer ${token}` : '' }
                     });
                 } catch (cleanupError) {
@@ -433,7 +429,7 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
                     </Box>
                 )}
 
-                {/* 🆕 Résumé IA du document */}
+                {/* Résumé IA du document */}
                 {showResume && file && contenuDocument && (
                     <Box sx={{ mt: 3, mb: 2 }}>
                         <ResumeDocument 
@@ -444,7 +440,7 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
                     </Box>
                 )}
 
-                {/* 🆕 Détecteur de falsification */}
+                {/* Détecteur de falsification */}
                 {showResume && file && (
                     <Box sx={{ mt: 2, mb: 2 }}>
                         <DetecteurFalsification 

@@ -16,6 +16,8 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 // Configuration du worker PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const SignaturePkiPage = () => {
     const { token } = useParams();
     const navigate = useNavigate();
@@ -53,6 +55,11 @@ const SignaturePkiPage = () => {
     // Responsive states
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [isTablet, setIsTablet] = useState(window.innerWidth <= 1024 && window.innerWidth > 768);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     // Instance du plugin
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
@@ -134,7 +141,12 @@ const SignaturePkiPage = () => {
     useEffect(() => {
         const checkAuthAndCertificat = async () => {
             try {
-                const authRes = await axios.get('http://localhost:8080/api/auth/check', { withCredentials: true });
+                const token = getToken();
+                const authRes = await axios.get(`${API_BASE_URL}/auth/check`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
                 
                 if (!authRes.data.authentifie) {
                     navigate(`/connexion?redirect=/signature-pki/${token}`);
@@ -142,7 +154,11 @@ const SignaturePkiPage = () => {
                 }
                 setIsAuthenticated(true);
                 
-                const certRes = await axios.get('http://localhost:8080/api/utilisateur/pki/mon-statut', { withCredentials: true });
+                const certRes = await axios.get(`${API_BASE_URL}/utilisateur/pki/mon-statut`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
                 
                 if (certRes.data.status !== 'ACTIVE') {
                     alert("Vous devez avoir un certificat actif pour utiliser la signature PKI. Veuillez en faire la demande dans votre tableau de bord.");
@@ -151,7 +167,7 @@ const SignaturePkiPage = () => {
                 }
                 setHasCertificat(true);
                 
-                const invRes = await axios.get(`http://localhost:8080/api/signature/details/${token}`);
+                const invRes = await axios.get(`${API_BASE_URL}/signature/details/${token}`);
                 
                 if (invRes.data.dateExpiration && new Date(invRes.data.dateExpiration) < new Date()) {
                     alert("Cette invitation a expiré. Veuillez contacter l'expéditeur pour une nouvelle invitation.");
@@ -160,7 +176,7 @@ const SignaturePkiPage = () => {
                 }
                 
                 setInvitation(invRes.data);
-                const pdfUrlTemp = `http://localhost:8080/api/signature/apercu/${token}`;
+                const pdfUrlTemp = `${API_BASE_URL}/signature/apercu/${token}`;
                 setPdfUrl(pdfUrlTemp);
                 setNomDocument(invRes.data.nomDocument || 'document.pdf');
                 
@@ -202,8 +218,7 @@ const SignaturePkiPage = () => {
             
             try {
                 const response = await axios.get(
-                    `http://localhost:8080/api/signature/verifier-certificat-expediteur/${token}`,
-                    { withCredentials: true }
+                    `${API_BASE_URL}/signature/verifier-certificat-expediteur/${token}`
                 );
                 setCertificatExpediteurValide(response.data.valide);
                 setVerificationExpediteur(response.data);
@@ -291,7 +306,12 @@ const SignaturePkiPage = () => {
         
         try {
             setLoading(true);
-            await axios.post(`http://localhost:8080/api/signature/send-otp?token=${token}`);
+            const tokenAuth = getToken();
+            await axios.post(`${API_BASE_URL}/signature/send-otp?token=${token}`, {}, {
+                headers: {
+                    'Authorization': tokenAuth ? `Bearer ${tokenAuth}` : ''
+                }
+            });
             setIsOtpSent(true);
             alert(`✅ Code de sécurité envoyé à : ${invitation.emailDestinataire}`);
         } catch (err) {
@@ -340,6 +360,7 @@ const SignaturePkiPage = () => {
 
         setLoading(true);
         try {
+            const tokenAuth = getToken();
             const payload = {
                 token: token,
                 otp: otp,
@@ -352,10 +373,12 @@ const SignaturePkiPage = () => {
 
             console.log("📤 Envoi signature PKI:", payload);
 
-            const endpoint = 'http://localhost:8080/api/signature/pki/executer';
+            const endpoint = `${API_BASE_URL}/signature/pki/executer`;
             
             const pkiResponse = await axios.post(endpoint, payload, { 
-                withCredentials: true,
+                headers: {
+                    'Authorization': tokenAuth ? `Bearer ${tokenAuth}` : ''
+                },
                 responseType: 'blob'
             });
 

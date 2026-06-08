@@ -22,7 +22,7 @@ import SignaturesView from '../components/Simples/SignaturesView';
 import StepConfig from '../components/Simples/StepConfig';
 import TransactionsView from '../components/Simples/TransactionsView';
 
-// ⭐ IMPORT DES COMPOSANTS IA EN FRANÇAIS
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const UserDashboard = () => {
   const [view, setView] = useState('signatures');
@@ -47,6 +47,11 @@ const UserDashboard = () => {
   const isTablet = useMediaQuery('(max-width:960px)');
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Récupérer le token
+  const getToken = () => {
+    return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+  };
+
   useEffect(() => { 
     fetchUserProfile(); 
   }, []);
@@ -57,7 +62,12 @@ const UserDashboard = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/utilisateur/mon-profil', { withCredentials: true });
+      const token = getToken();
+      const response = await axios.get(`${API_BASE_URL}/utilisateur/mon-profil`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       setUserData(response.data);
     } catch (error) { 
       console.error("Erreur profil:", error); 
@@ -67,7 +77,12 @@ const UserDashboard = () => {
   const fetchTransactions = async () => {
     setLoadingTransactions(true);
     try {
-      const response = await axios.get('http://localhost:8080/api/documents/mes-invitations', { withCredentials: true });
+      const token = getToken();
+      const response = await axios.get(`${API_BASE_URL}/documents/mes-invitations`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       setTransactions(response.data);
     } catch (error) {
       setSnackbar({ open: true, message: "Erreur lors de la récupération des transactions.", severity: 'error' });
@@ -85,7 +100,12 @@ const UserDashboard = () => {
 
   const handleUpdateProfil = async () => {
     try {
-      await axios.put('http://localhost:8080/api/utilisateur/modifier-profil', userData, { withCredentials: true });
+      const token = getToken();
+      await axios.put(`${API_BASE_URL}/utilisateur/modifier-profil`, userData, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       setSnackbar({ open: true, message: 'Profil mis à jour !', severity: 'success' });
       setIsEditing(false);
     } catch (error) {
@@ -99,10 +119,15 @@ const UserDashboard = () => {
       return;
     }
     try {
-      await axios.put('http://localhost:8080/api/utilisateur/modifier-mot-de-passe', {
+      const token = getToken();
+      await axios.put(`${API_BASE_URL}/utilisateur/modifier-mot-de-passe`, {
         ancienMotDePasse: passwordData.oldPassword,
         nouveauMotDePasse: passwordData.newPassword
-      }, { withCredentials: true });
+      }, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       setSnackbar({ open: true, message: "Mot de passe modifié avec succès !", severity: 'success' });
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
@@ -122,11 +147,14 @@ const UserDashboard = () => {
   const handleFinalConfirm = async (position, signataireInfo, typeSig) => {
     const file = uploadedFiles[0];
     try {
+      const token = getToken();
       const formData = new FormData();
       formData.append('file', file);
-      const uploadResponse = await axios.post('http://localhost:8080/api/documents/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        withCredentials: true
+      const uploadResponse = await axios.post(`${API_BASE_URL}/documents/upload`, formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
       });
       
       const payload = {
@@ -141,7 +169,11 @@ const UserDashboard = () => {
         typeSignature: typeSig
       };
       
-      await axios.post('http://localhost:8080/api/signature/creer-transaction', payload, { withCredentials: true });
+      await axios.post(`${API_BASE_URL}/signature/creer-transaction`, payload, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       
       setSnackbar({ 
         open: true, 

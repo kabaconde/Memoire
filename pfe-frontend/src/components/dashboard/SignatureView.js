@@ -4,6 +4,8 @@ import { Draw as DrawIcon, CheckCircle } from '@mui/icons-material';
 import SignatureCanvas from 'react-signature-canvas';
 import axios from 'axios';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const SignatureView = ({ setSnackbar, onSignatureSaved, isMobile = false }) => {
     const sigPad = useRef(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -13,10 +15,24 @@ const SignatureView = ({ setSnackbar, onSignatureSaved, isMobile = false }) => {
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
 
+    // Récupérer le token
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        return {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+        };
+    };
+
     useEffect(() => {
         const checkExistingSignature = async () => {
             try {
-                const response = await axios.get('http://localhost:8080/api/utilisateur/mon-profil', { withCredentials: true });
+                const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+                const response = await axios.get(`${API_BASE_URL}/utilisateur/mon-profil`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
                 if (response.data.imageSignature) {
                     setSignatureExists(true);
                     setPreviewUrl(response.data.imageSignature);
@@ -46,9 +62,14 @@ const SignatureView = ({ setSnackbar, onSignatureSaved, isMobile = false }) => {
         
         try {
             setIsSaving(true);
-            await axios.post('http://localhost:8080/api/utilisateur/sauvegarder-signature', 
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            await axios.post(`${API_BASE_URL}/utilisateur/sauvegarder-signature`, 
                 { imageSignature: dataURL }, 
-                { withCredentials: true }
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                }
             );
             setSignatureExists(true);
             setPreviewUrl(dataURL);

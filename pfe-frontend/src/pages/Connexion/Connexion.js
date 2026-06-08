@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Box, TextField, Button, Alert, InputAdornment, 
     CircularProgress, Typography, Link, Divider, useMediaQuery,
-    Stack  // ✅ AJOUTER Stack ici
+    Stack
 } from '@mui/material';
 import { Lock, Email, Security } from '@mui/icons-material';
 import API from '../../services/api';
@@ -65,11 +65,15 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                 setIsMfaRequired(true);
                 setError('');
             } else {
+                // Stocker le token JWT
+                if (response.data.token) {
+                    localStorage.setItem('accessToken', response.data.token);
+                }
                 localStorage.setItem('role', response.data.role);
                 localStorage.setItem('user_info', JSON.stringify({
                     prenom: response.data.prenom,
                     nom: response.data.nom,
-                    email: email
+                    email: response.data.email || email
                 }));
                 
                 if (onLoginSuccess) onLoginSuccess();
@@ -92,6 +96,11 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                 email: email.trim().toLowerCase(), 
                 code: otpCode.trim() 
             });
+            
+            // Stocker le token JWT retourné
+            if (response.data.token) {
+                localStorage.setItem('accessToken', response.data.token);
+            }
             
             localStorage.setItem('role', response.data.role);
             localStorage.setItem('user_info', JSON.stringify({
@@ -117,6 +126,11 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
         try {
             const response = await API.post('/auth/google', { token: googleData.credential });
 
+            // Stocker le token JWT
+            if (response.data.token) {
+                localStorage.setItem('accessToken', response.data.token);
+            }
+            
             localStorage.setItem('role', response.data.role);
             localStorage.setItem('user_info', JSON.stringify({
                 prenom: response.data.prenom,

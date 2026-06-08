@@ -20,6 +20,8 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 
 import VerificationReport from './VerificationReport';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
   
   const [openReportDialog, setOpenReportDialog] = useState(false);
@@ -28,6 +30,16 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
   
   const isMobile = useMediaQuery('(max-width:600px)');
   const isTablet = useMediaQuery('(max-width:960px)');
+
+  // Récupérer le token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    return {
+      'Authorization': token ? `Bearer ${token}` : '',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+  };
 
   // Statistiques
   const stats = {
@@ -74,10 +86,13 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
   const handleDownload = async (documentId, nomFichier, typeSignature) => {
     setDownloading(prev => ({ ...prev, [documentId]: true }));
     try {
-      const endpoint = `http://localhost:8080/api/documents/download-signe/${documentId}`;
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+      const endpoint = `${API_BASE_URL}/documents/download-signe/${documentId}`;
       const response = await axios.get(endpoint, {
         responseType: 'blob',
-        withCredentials: true
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -98,10 +113,15 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
 
   const verifierSignature = async (documentId, nomFichier, typeSignature) => {
     try {
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       const response = await axios.post(
-        'http://localhost:8080/api/documents/verifier-document-signe',
+        `${API_BASE_URL}/documents/verifier-document-signe`,
         { documentId: documentId, typeSignature: typeSignature },
-        { withCredentials: true }
+        {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        }
       );
       setCurrentVerificationResult(response.data);
       setOpenReportDialog(true);

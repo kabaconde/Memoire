@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material';
 
 // URL de l'API backend
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const VerificationCertificat = () => {
     const [loading, setLoading] = useState(false);
@@ -20,14 +20,25 @@ const VerificationCertificat = () => {
     const isMobile = useMediaQuery('(max-width:600px)');
     const isSmallMobile = useMediaQuery('(max-width:380px)');
 
+    // Récupérer le token
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        return {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+    };
+
     const verifierCertificat = async () => {
         setLoading(true);
         setResultat(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/pki/verifier-mon-certificat`, {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            const response = await fetch(`${API_BASE_URL}/pki/verifier-mon-certificat`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 }

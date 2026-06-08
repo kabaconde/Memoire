@@ -6,6 +6,8 @@ import {
 import { AccessTime as AccessTimeIcon, CheckCircle as CheckCircleIcon, Error as ErrorIcon, Refresh as RefreshIcon, Security as SecurityIcon, Verified as VerifiedIcon } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const HorodatageStatusView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const [status, setStatus] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,10 +18,20 @@ const HorodatageStatusView = ({ setSnackbar, isMobile = false, isTablet = false 
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
 
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
+
     const fetchStatus = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:8080/api/horodatage/statut', { withCredentials: true });
+            const token = getToken();
+            const response = await axios.get(`${API_BASE_URL}/horodatage/statut`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setStatus(response.data);
         } catch (error) {
             console.error("Erreur:", error);
@@ -30,7 +42,15 @@ const HorodatageStatusView = ({ setSnackbar, isMobile = false, isTablet = false 
     const testerHorodatage = async () => {
         setTesting(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/horodatage/tester', { data: testData || "Test automatique" }, { withCredentials: true });
+            const token = getToken();
+            const response = await axios.post(`${API_BASE_URL}/horodatage/tester`, 
+                { data: testData || "Test automatique" }, 
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                }
+            );
             setTestResult(response.data);
             setSnackbar({ open: true, message: response.data.success ? "Test réussi ✅" : "Test échoué ❌", severity: response.data.success ? 'success' : 'error' });
         } catch (error) {

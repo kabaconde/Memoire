@@ -3,24 +3,38 @@ import { Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 
 // URL de l'API backend
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
     const [isAuthorized, setIsAuthorized] = useState(null);
     const [userRole, setUserRole] = useState(null);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     useEffect(() => {
         let isMounted = true;
 
         const checkAuth = async () => {
             try {
-                // Utilisation de fetch avec credentials pour envoyer le cookie
-                const response = await fetch(`${API_BASE_URL}/api/auth/check`, {
+                const token = getToken();
+                
+                // Si pas de token, non autorisé directement
+                if (!token) {
+                    console.warn('[Auth] Aucun token trouvé');
+                    if (isMounted) setIsAuthorized(false);
+                    return;
+                }
+
+                // Utilisation de fetch avec token Bearer
+                const response = await fetch(`${API_BASE_URL}/auth/check`, {
                     method: 'GET',
-                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 
@@ -48,12 +62,17 @@ const PrivateRoute = ({ children, allowedRoles }) => {
                         console.warn('[Auth] Session invalide ou expirée');
                         setIsAuthorized(false);
                     }
+                } else if (response.status === 401) {
+                    console.warn('[Auth] Token invalide ou expiré');
+                    localStorage.removeItem('accessToken');
+                    sessionStorage.removeItem('accessToken');
+                    setIsAuthorized(false);
                 } else {
                     console.warn('[Auth] Session invalide ou expirée');
                     setIsAuthorized(false);
                 }
             } catch (error) {
-                console.error('[Auth] Erreur lors de la vérification du cookie:', error.message);
+                console.error('[Auth] Erreur lors de la vérification:', error.message);
                 if (isMounted) setIsAuthorized(false);
             }
         };

@@ -14,6 +14,8 @@ import PendingIcon from '@mui/icons-material/Pending';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import CloseIcon from '@mui/icons-material/Close';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const AuditLogsView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,6 +29,11 @@ const AuditLogsView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     const eventTypes = ['SIGNATURE_DOCUMENT', 'ENVOI_INVITATION', 'GENERATION_CERTIFICAT', 'DEMANDE_CERTIFICAT', 'APPROBATION_CERTIFICAT', 'RENOUVELLEMENT_CERTIFICAT', 'VALIDATION_OTP', 'AUTO_SIGNATURE', 'INSCRIPTION', 'CONNEXION', 'ACTIVATION_COMPTE'];
 
@@ -42,12 +49,17 @@ const AuditLogsView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            let url = 'http://localhost:8080/api/admin/audit/logs';
+            const token = getToken();
+            let url = `${API_BASE_URL}/admin/audit/logs`;
             const params = [];
             if (filterUserEmail) params.push(`userEmail=${encodeURIComponent(filterUserEmail)}`);
             if (filterEventType) params.push(`eventType=${filterEventType}`);
             if (params.length > 0) url += '?' + params.join('&');
-            const response = await axios.get(url, { withCredentials: true });
+            const response = await axios.get(url, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setLogs(response.data);
         } catch (error) {
             console.error('Erreur chargement logs:', error);

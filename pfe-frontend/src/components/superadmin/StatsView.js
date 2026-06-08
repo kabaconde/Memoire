@@ -5,17 +5,17 @@ import {
     Avatar, LinearProgress, Paper, Table, TableBody, 
     TableCell, TableContainer, TableHead, TableRow, Chip,
     Tooltip, useMediaQuery, Button, Dialog, DialogTitle, 
-    DialogContent, IconButton as MuiIconButton,IconButton
+    DialogContent, IconButton as MuiIconButton,
+    Close as CloseIcon
 } from '@mui/material';
 import { 
     People, Business, Description, Security, 
     TrendingUp, VerifiedUser, Pending, CheckCircle,
-    Draw, AutoFixHigh, Fingerprint, Analytics as AnalyticsIcon,
-    Close as CloseIcon
+    Draw, AutoFixHigh, Fingerprint, Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 
 // URL de l'API backend
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const StatsView = ({ setSnackbar, isMobile = false, isTablet = false, onAnalyseDocument }) => {
     const [stats, setStats] = useState({
@@ -43,14 +43,20 @@ const StatsView = ({ setSnackbar, isMobile = false, isTablet = false, onAnalyseD
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
 
-    // Fonction pour les requêtes API avec cookie
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
+
+    // Fonction pour les requêtes API avec token Bearer
     const fetchAPI = async (endpoint) => {
+        const token = getToken();
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
             }
         });
         
@@ -71,11 +77,11 @@ const StatsView = ({ setSnackbar, isMobile = false, isTablet = false, onAnalyseD
             setLoading(true);
             try {
                 const [usersRes, certRes, docsRes, activitiesRes, signaturesRes] = await Promise.all([
-                    fetchAPI('/api/admin/stats/utilisateurs'),
-                    fetchAPI('/api/admin/pki/stats'),
-                    fetchAPI('/api/admin/stats/documents'),
-                    fetchAPI('/api/admin/stats/activites'),
-                    fetchAPI('/api/admin/stats/signatures')
+                    fetchAPI('/admin/stats/utilisateurs'),
+                    fetchAPI('/admin/pki/stats'),
+                    fetchAPI('/admin/stats/documents'),
+                    fetchAPI('/admin/stats/activites'),
+                    fetchAPI('/admin/stats/signatures')
                 ]);
                 
                 setStats({
@@ -260,13 +266,13 @@ const StatsView = ({ setSnackbar, isMobile = false, isTablet = false, onAnalyseD
                                         <TableCell>
                                             {act.documentId && (
                                                 <Tooltip title="Analyser le document avec l'IA">
-                                                    <IconButton
+                                                    <MuiIconButton
                                                         size="small"
                                                         color="secondary"
                                                         onClick={() => handleOpenAnalyse({ id: act.documentId, nomFichier: act.documentName || 'Document' })}
                                                     >
                                                         <AnalyticsIcon fontSize="small" />
-                                                    </IconButton>
+                                                    </MuiIconButton>
                                                 </Tooltip>
                                             )}
                                         </TableCell>
@@ -295,17 +301,18 @@ const StatsView = ({ setSnackbar, isMobile = false, isTablet = false, onAnalyseD
             >
                 <DialogTitle sx={{ 
                     display: 'flex', 
-                    justifyContent: 'space-between', 
+                    justifyContent: 'flex-end', 
                     alignItems: 'center',
                     pb: 1,
                     borderBottom: '1px solid #e0e0e0'
                 }}>
-                  
                     <MuiIconButton onClick={() => setOpenAnalyseDialog(false)} size="small">
                         <CloseIcon />
                     </MuiIconButton>
                 </DialogTitle>
-               
+                <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflowY: 'auto' }}>
+                    {/* Le contenu de l'analyse IA sera ajouté ici si nécessaire */}
+                </DialogContent>
             </Dialog>
         </Box>
     );

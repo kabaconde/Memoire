@@ -18,6 +18,8 @@ import axios from 'axios';
 const MotionPaper = motion(Paper);
 const MotionCard = motion(Card);
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const CertificatView = ({ currentStatus, onStatusRefresh, setSnackbar, isMobile = false }) => {
     const [loading, setLoading] = useState(false);
     const [renewLoading, setRenewLoading] = useState(false);
@@ -27,12 +29,26 @@ const CertificatView = ({ currentStatus, onStatusRefresh, setSnackbar, isMobile 
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
 
+    // Récupérer le token
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        return {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+        };
+    };
+
     useEffect(() => {
         const fetchCertificat = async () => {
             // 🔥 CORRECTION : Récupérer les infos même si EXPIRED
             if (currentStatus === 'ACTIVE' || currentStatus === 'EXPIRED') {
                 try {
-                    const res = await axios.get('http://localhost:8080/api/utilisateur/pki/mon-statut', { withCredentials: true });
+                    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+                    const res = await axios.get(`${API_BASE_URL}/utilisateur/pki/mon-statut`, {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        }
+                    });
                     setCertInfo(res.data);
                     if (res.data.dateExpiration) {
                         const expirationDate = new Date(res.data.dateExpiration);
@@ -53,7 +69,12 @@ const CertificatView = ({ currentStatus, onStatusRefresh, setSnackbar, isMobile 
     const handleRequest = async () => {
         setLoading(true);
         try {
-            await axios.post('http://localhost:8080/api/utilisateur/pki/request-certificate', {}, { withCredentials: true });
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            await axios.post(`${API_BASE_URL}/utilisateur/pki/request-certificate`, {}, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setSnackbar({ open: true, message: "✅ Votre demande de certificat a été transmise avec succès.", severity: 'success' });
             if (onStatusRefresh) onStatusRefresh();
         } catch (error) {
@@ -65,7 +86,12 @@ const CertificatView = ({ currentStatus, onStatusRefresh, setSnackbar, isMobile 
     const handleRenew = async () => {
         setRenewLoading(true);
         try {
-            await axios.post('http://localhost:8080/api/utilisateur/pki/renouveler-certificat', {}, { withCredentials: true });
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            await axios.post(`${API_BASE_URL}/utilisateur/pki/renouveler-certificat`, {}, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setSnackbar({ open: true, message: "✅ Votre demande de renouvellement a été enregistrée.", severity: 'success' });
             if (onStatusRefresh) onStatusRefresh();
         } catch (error) {

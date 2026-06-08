@@ -40,9 +40,6 @@ const Inscription = () => {
   // VALIDATIONS STANDARDS
   // ============================================
 
-  /**
-   * Validation du nom (lettres, espaces, tirets, apostrophes uniquement)
-   */
   const validateNom = (nom) => {
     if (!nom || nom.trim() === '') {
       return "Le nom est requis";
@@ -60,9 +57,6 @@ const Inscription = () => {
     return "";
   };
 
-  /**
-   * Validation du prénom (lettres, espaces, tirets, apostrophes uniquement)
-   */
   const validatePrenom = (prenom) => {
     if (!prenom || prenom.trim() === '') {
       return "Le prénom est requis";
@@ -80,23 +74,15 @@ const Inscription = () => {
     return "";
   };
 
-  /**
-   * Validation du téléphone (format international)
-   * Accepte: +221XXXXXXXXX, 00221XXXXXXXXX, 0XXXXXXXXX
-   */
-const validateTelephone = (telephone) => {
+  const validateTelephone = (telephone) => {
     if (!telephone || telephone.trim() === '') {
       return "Le numéro de téléphone est requis";
     }
     
-    // Nettoyer le numéro (enlever espaces, tirets, points)
     const cleaned = telephone.replace(/[\s\-\.\(\)]/g, '');
     
-    // Format international: +216XXXXXXXX (Tunisie - 8 chiffres)
     const internationalRegex = /^\+(221|33|223|224|225|226|227|228|229|216)[0-9]{8,9}$/;
-    // Format avec double zéro: 00216XXXXXXXX
     const doubleZeroRegex = /^00(221|33|223|224|225|226|227|228|229|216)[0-9]{8,9}$/;
-    // Format local: 0XXXXXXXXX (9 chiffres pour Sénégal) ou XXXXXXXX (8 chiffres pour Tunisie)
     const localRegex = /^0[67][0-9]{8}$|^[259][0-9]{7}$/;
     
     if (!internationalRegex.test(cleaned) && !doubleZeroRegex.test(cleaned) && !localRegex.test(cleaned)) {
@@ -104,15 +90,8 @@ const validateTelephone = (telephone) => {
     }
     
     return "";
-};
-  /**
-   * Validation du mot de passe (standard OWASP)
-   * - Minimum 12 caractères
-   * - Au moins 1 majuscule
-   * - Au moins 1 minuscule
-   * - Au moins 1 chiffre
-   * - Au moins 1 caractère spécial
-   */
+  };
+
   const validateMotDePasse = (motDePasse) => {
     if (!motDePasse) {
       return "Le mot de passe est requis";
@@ -142,7 +121,6 @@ const validateTelephone = (telephone) => {
       return "Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&* etc.)";
     }
     
-    // Éviter les mots de passe trop simples
     const commonPasswords = ['Password123!', 'Admin123!', 'User123!', 'Welcome123!'];
     if (commonPasswords.includes(motDePasse)) {
       return "Ce mot de passe est trop commun. Veuillez en choisir un plus sécurisé";
@@ -151,9 +129,6 @@ const validateTelephone = (telephone) => {
     return "";
   };
 
-  /**
-   * Validation de la confirmation du mot de passe
-   */
   const validateConfirmMotDePasse = (confirmMotDePasse, motDePasse) => {
     if (!confirmMotDePasse) {
       return "Veuillez confirmer votre mot de passe";
@@ -164,7 +139,6 @@ const validateTelephone = (telephone) => {
     return "";
   };
 
-  // Mise à jour des erreurs en temps réel
   useEffect(() => {
     setErrors(prev => ({
       ...prev,
@@ -176,7 +150,6 @@ const validateTelephone = (telephone) => {
     }));
   }, [formData.nom, formData.prenom, formData.telephone, formData.motDePasse, formData.confirmMotDePasse]);
 
-  // Vérifier si le formulaire est valide
   const isFormValid = () => {
     return formData.nom && formData.prenom && formData.telephone && 
            formData.motDePasse && formData.confirmMotDePasse &&
@@ -187,7 +160,6 @@ const validateTelephone = (telephone) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation finale avant soumission
     const nomError = validateNom(formData.nom);
     const prenomError = validatePrenom(formData.prenom);
     const telephoneError = validateTelephone(formData.telephone);
@@ -210,11 +182,17 @@ const validateTelephone = (telephone) => {
     
     try {
       const token = new URLSearchParams(location.search).get('token');
-      await API.post('/auth/finaliser-inscription', { 
+      const response = await API.post('/auth/finaliser-inscription', { 
         ...formData, 
         token, 
         role: 'UTILISATEUR' 
       });
+      
+      // Stocker le token si retourné
+      if (response.data.token) {
+        localStorage.setItem('accessToken', response.data.token);
+      }
+      
       setIsCompleted(true);
     } catch (error) {
       setErrorMsg(error.response?.data?.erreur || "Impossible d'activer le compte.");

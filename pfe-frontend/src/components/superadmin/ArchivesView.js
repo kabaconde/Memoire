@@ -17,6 +17,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const [archives, setArchives] = useState([]);
     const [nonArchivedDocs, setNonArchivedDocs] = useState([]);
@@ -34,10 +36,20 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
 
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
+
     const fetchArchives = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:8080/api/archivage/liste', { withCredentials: true });
+            const token = getToken();
+            const response = await axios.get(`${API_BASE_URL}/archivage/liste`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setArchives(response.data);
             calculerStats(response.data);
         } catch (error) {
@@ -49,7 +61,12 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const fetchNonArchivedDocuments = async () => {
         setLoadingNonArchived(true);
         try {
-            const response = await axios.get('http://localhost:8080/api/archivage/documents-non-archives', { withCredentials: true });
+            const token = getToken();
+            const response = await axios.get(`${API_BASE_URL}/archivage/documents-non-archives`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setNonArchivedDocs(response.data);
         } catch (error) {
             console.error("Erreur chargement documents non archivés:", error);
@@ -68,7 +85,12 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
         if (!selectedDocToArchive) return;
         setLoading(true);
         try {
-            await axios.post(`http://localhost:8080/api/archivage/archiver/${selectedDocToArchive.id}?niveau=${archiveLevel}`, {}, { withCredentials: true });
+            const token = getToken();
+            await axios.post(`${API_BASE_URL}/archivage/archiver/${selectedDocToArchive.id}?niveau=${archiveLevel}`, {}, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             if (setSnackbar) setSnackbar({ open: true, message: `Document "${selectedDocToArchive.nom}" archivé avec succès`, severity: 'success' });
             setOpenArchiveDialog(false);
             setSelectedDocToArchive(null);
@@ -82,7 +104,12 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
 
     const verifierIntegrite = async (documentId) => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/archivage/verifier/${documentId}`, { withCredentials: true });
+            const token = getToken();
+            const response = await axios.get(`${API_BASE_URL}/archivage/verifier/${documentId}`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             if (setSnackbar) setSnackbar({ open: true, message: response.data.integre ? "Archive intègre ✅" : "Archive corrompue ❌", severity: response.data.integre ? 'success' : 'error' });
         } catch (error) {
             if (setSnackbar) setSnackbar({ open: true, message: "Erreur lors de la vérification", severity: 'error' });
@@ -91,7 +118,13 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
 
     const exporterArchive = async (documentId, reference) => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/archivage/exporter/${documentId}`, { withCredentials: true, responseType: 'blob' });
+            const token = getToken();
+            const response = await axios.get(`${API_BASE_URL}/archivage/exporter/${documentId}`, { 
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                },
+                responseType: 'blob' 
+            });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -109,7 +142,12 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const supprimerArchive = async (archiveId) => {
         if (!window.confirm("Confirmer la suppression de cette archive ?")) return;
         try {
-            await axios.delete(`http://localhost:8080/api/archivage/${archiveId}`, { withCredentials: true });
+            const token = getToken();
+            await axios.delete(`${API_BASE_URL}/archivage/${archiveId}`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             if (setSnackbar) setSnackbar({ open: true, message: "Archive supprimée avec succès", severity: 'success' });
             fetchArchives();
         } catch (error) {
@@ -120,7 +158,12 @@ const ArchivesView = ({ setSnackbar, isMobile = false, isTablet = false }) => {
     const purgerArchivesExpirees = async () => {
         if (!window.confirm("⚠️ Cette action supprimera définitivement toutes les archives expirées. Continuer ?")) return;
         try {
-            const response = await axios.delete('http://localhost:8080/api/archivage/purger', { withCredentials: true });
+            const token = getToken();
+            const response = await axios.delete(`${API_BASE_URL}/archivage/purger`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             if (setSnackbar) setSnackbar({ open: true, message: `${response.data.archivesPurgees} archive(s) purgée(s) avec succès`, severity: 'success' });
             fetchArchives();
         } catch (error) {

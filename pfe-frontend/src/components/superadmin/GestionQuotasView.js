@@ -39,16 +39,22 @@ import {
     EventNote as EventNoteIcon
 } from '@mui/icons-material';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
-// 🔧 FONCTION POUR LES REQUÊTES AVEC COOKIES (comme dans ConfigurationView)
+// Récupérer le token
+const getToken = () => {
+    return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+};
+
+// 🔧 FONCTION POUR LES REQUÊTES AVEC TOKEN BEARER
 const fetchAPI = async (endpoint, options = {}) => {
+    const token = getToken();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        credentials: 'include',  // ⚠️ CRUCIAL : Envoie les cookies HttpOnly
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
             ...options.headers
         }
     });
@@ -73,7 +79,7 @@ const GestionQuotasView = ({ setSnackbar, isMobile }) => {
     const fetchAllQuotas = async () => {
         setLoading(true);
         try {
-            // 🔧 Récupérer la liste des utilisateurs AVEC COOKIES
+            // 🔧 Récupérer la liste des utilisateurs AVEC TOKEN
             const users = await fetchAPI('/admin/utilisateurs');
             
             // Récupérer le quota pour chaque utilisateur

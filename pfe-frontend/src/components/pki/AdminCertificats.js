@@ -26,16 +26,17 @@ import {
 } from '@mui/icons-material';
 
 // URL de l'API backend
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
-// Fonction pour les requêtes API avec cookie
+// Fonction pour les requêtes API avec token Bearer
 const fetchAPI = async (endpoint, options = {}) => {
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
             ...options.headers
         }
     });
@@ -68,9 +69,9 @@ const AdminCertificats = () => {
         setLoading(true);
         try {
             const [demandesData, actifsData, statsData] = await Promise.all([
-                fetchAPI('/api/admin/pki/demandes-en-attente'),
-                fetchAPI('/api/admin/pki/certificats-actifs'),
-                fetchAPI('/api/admin/pki/stats')
+                fetchAPI('/admin/pki/demandes-en-attente'),
+                fetchAPI('/admin/pki/certificats-actifs'),
+                fetchAPI('/admin/pki/stats')
             ]);
             setDemandes(demandesData);
             setCertificatsActifs(actifsData);
@@ -95,7 +96,7 @@ const AdminCertificats = () => {
     const handleApprove = async (userId) => {
         try {
             setMessage({ text: "Initialisation du SoftHSM et signature cryptographique...", type: 'info' });
-            const data = await fetchAPI(`/api/admin/pki/approve/${userId}`, { method: 'POST' });
+            const data = await fetchAPI(`/admin/pki/approve/${userId}`, { method: 'POST' });
             setMessage({ text: data.message || "Certificat généré avec succès !", type: 'success' });
             setOpenPreviewModal(false);
             fetchData();
@@ -119,7 +120,7 @@ const AdminCertificats = () => {
 
     const nettoyerCertificatsExpires = async () => {
         try {
-            const data = await fetchAPI('/api/admin/pki/nettoyer-certificats-expires');
+            const data = await fetchAPI('/admin/pki/nettoyer-certificats-expires');
             setSnackbar({ open: true, message: data.message, severity: 'success' });
             fetchData();
         } catch (error) {
@@ -139,27 +140,27 @@ const AdminCertificats = () => {
     };
 
     const envoyerConfirmation = async (userId) => {
-    try {
-        setLoading(true);
-        const response = await fetchAPI(`/api/admin/pki/demander-confirmation/${userId}`, { 
-            method: 'POST' 
-        });
-        setSnackbar({ 
-            open: true, 
-            message: response.message || "Email de confirmation envoyé", 
-            severity: 'success' 
-        });
-        fetchData(); // Rafraîchir la liste
-    } catch (error) {
-        setSnackbar({ 
-            open: true, 
-            message: error.message || "Erreur lors de l'envoi", 
-            severity: 'error' 
-        });
-    } finally {
-        setLoading(false);
-    }
-};
+        try {
+            setLoading(true);
+            const response = await fetchAPI(`/admin/pki/demander-confirmation/${userId}`, { 
+                method: 'POST' 
+            });
+            setSnackbar({ 
+                open: true, 
+                message: response.message || "Email de confirmation envoyé", 
+                severity: 'success' 
+            });
+            fetchData();
+        } catch (error) {
+            setSnackbar({ 
+                open: true, 
+                message: error.message || "Erreur lors de l'envoi", 
+                severity: 'error' 
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
@@ -269,59 +270,54 @@ const AdminCertificats = () => {
                                 <TableCell><b>Email</b></TableCell>
                                 <TableCell><b>Date demande</b></TableCell>
                                 <TableCell>Statut confirmation</TableCell>  
-
                                 <TableCell align="center"><b>Actions</b></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {loading ? <TableRow><TableCell colSpan={4} align="center"><CircularProgress /></TableCell></TableRow> :
-                             demandes.length === 0 ? <TableRow><TableCell colSpan={4} align="center">Aucune demande en attente</TableCell></TableRow> :
+                            {loading ? <TableRow><TableCell colSpan={5} align="center"><CircularProgress /></TableCell></TableRow> :
+                             demandes.length === 0 ? <TableRow><TableCell colSpan={5} align="center">Aucune demande en attente</TableCell></TableRow> :
                              demandes.map((row) => (
-                              // Dans le tableau des demandes
-<TableRow key={row.id} hover>
-    <TableCell>{row.prenom} {row.nom}</TableCell>
-    <TableCell>{row.email}</TableCell>
-    <TableCell>{row.dateDemande ? new Date(row.dateDemande).toLocaleString() : 'N/A'}</TableCell>
-    <TableCell>
-        {/* 🆕 AFFICHER LE STATUT DE CONFIRMATION */}
-        {row.confirme ? (
-            <Chip label="✅ Confirmé" color="success" size="small" />
-        ) : row.demandeStatut === 'AWAITING_CONFIRMATION' ? (
-            <Chip label="⏳ En attente confirmation" color="warning" size="small" />
-        ) : (
-            <Chip label="❌ Non confirmé" color="error" size="small" />
-        )}
-    </TableCell>
-    <TableCell align="center">
-        <Stack direction="row" spacing={1} justifyContent="center">
-            <Button size="small" startIcon={<VisibilityIcon />} onClick={() => ouvrirVisualisationDemande(row)}>
-                Visualiser
-            </Button>
-            {/* 🆕 BOUTON ENVOYER CONFIRMATION */}
-            {!row.confirme && row.demandeStatut !== 'AWAITING_CONFIRMATION' && (
-                <Button 
-                    size="small" 
-                    color="warning" 
-                    startIcon={<EmailIcon />} 
-                    onClick={() => envoyerConfirmation(row.id)}
-                >
-                    Envoyer confirmation
-                </Button>
-            )}
-            {/* 🆕 BOUTON APPROUVER (désactivé si non confirmé) */}
-            <Button 
-                variant="contained" 
-                color="success" 
-                size="small" 
-                startIcon={<CheckCircleOutline />} 
-                onClick={() => handleApprove(row.id)}
-                disabled={!row.confirme}  // ← DÉSACTIVÉ SI NON CONFIRMÉ
-            >
-                Approuver
-            </Button>
-        </Stack>
-    </TableCell>
-</TableRow>
+                                <TableRow key={row.id} hover>
+                                    <TableCell>{row.prenom} {row.nom}</TableCell>
+                                    <TableCell>{row.email}</TableCell>
+                                    <TableCell>{row.dateDemande ? new Date(row.dateDemande).toLocaleString() : 'N/A'}</TableCell>
+                                    <TableCell>
+                                        {row.confirme ? (
+                                            <Chip label="✅ Confirmé" color="success" size="small" />
+                                        ) : row.demandeStatut === 'AWAITING_CONFIRMATION' ? (
+                                            <Chip label="⏳ En attente confirmation" color="warning" size="small" />
+                                        ) : (
+                                            <Chip label="❌ Non confirmé" color="error" size="small" />
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        <Stack direction="row" spacing={1} justifyContent="center">
+                                            <Button size="small" startIcon={<VisibilityIcon />} onClick={() => ouvrirVisualisationDemande(row)}>
+                                                Visualiser
+                                            </Button>
+                                            {!row.confirme && row.demandeStatut !== 'AWAITING_CONFIRMATION' && (
+                                                <Button 
+                                                    size="small" 
+                                                    color="warning" 
+                                                    startIcon={<EmailIcon />} 
+                                                    onClick={() => envoyerConfirmation(row.id)}
+                                                >
+                                                    Envoyer confirmation
+                                                </Button>
+                                            )}
+                                            <Button 
+                                                variant="contained" 
+                                                color="success" 
+                                                size="small" 
+                                                startIcon={<CheckCircleOutline />} 
+                                                onClick={() => handleApprove(row.id)}
+                                                disabled={!row.confirme}
+                                            >
+                                                Approuver
+                                            </Button>
+                                        </Stack>
+                                    </TableCell>
+                                </TableRow>
                             ))}
                         </TableBody>
                     </Table>

@@ -18,6 +18,8 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 // Configuration du worker PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 // Gestionnaire pour l'erreur ResizeObserver
 const handleResizeObserverError = (e) => {
     if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -70,6 +72,11 @@ const SignatureSimplePage = () => {
     // Responsive states
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [isTablet, setIsTablet] = useState(window.innerWidth <= 1024 && window.innerWidth > 768);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     // Créer l'instance du plugin
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
@@ -180,7 +187,7 @@ const SignatureSimplePage = () => {
             try {
                 setLoading(true);
                 console.log("1️⃣ Récupération des détails de l'invitation...");
-                const res = await axios.get(`http://localhost:8080/api/signature/details/${token}`);
+                const res = await axios.get(`${API_BASE_URL}/signature/details/${token}`);
                 
                 if (res.data.dateExpiration && new Date(res.data.dateExpiration) < new Date()) {
                     alert("Cette invitation a expiré. Veuillez contacter l'expéditeur pour une nouvelle invitation.");
@@ -190,7 +197,7 @@ const SignatureSimplePage = () => {
                 
                 setInvitation(res.data);
                 setSignatureText(`${res.data.prenomSignataire} ${res.data.nomSignataire}`);
-                const pdfUrlTemp = `http://localhost:8080/api/signature/apercu/${token}`;
+                const pdfUrlTemp = `${API_BASE_URL}/signature/apercu/${token}`;
                 setPdfUrl(pdfUrlTemp);
                 setNomDocument(res.data.nomDocument || 'document.pdf');
                 
@@ -291,7 +298,12 @@ const SignatureSimplePage = () => {
         
         try {
             setLoading(true);
-            await axios.post(`http://localhost:8080/api/signature/send-otp?token=${token}`);
+            const tokenAuth = getToken();
+            await axios.post(`${API_BASE_URL}/signature/send-otp?token=${token}`, {}, {
+                headers: {
+                    'Authorization': tokenAuth ? `Bearer ${tokenAuth}` : ''
+                }
+            });
             setIsOtpSent(true);
             alert(`✅ Code de sécurité envoyé à : ${invitation.emailDestinataire}`);
         } catch (err) {
@@ -374,6 +386,7 @@ const SignatureSimplePage = () => {
 
         setLoading(true);
         try {
+            const tokenAuth = getToken();
             const payload = {
                 token: token,
                 otp: otp,
@@ -388,9 +401,14 @@ const SignatureSimplePage = () => {
             };
 
             const response = await axios.post(
-                'http://localhost:8080/api/signature/valider-simple', 
+                `${API_BASE_URL}/signature/valider-simple`, 
                 payload, 
-                { responseType: 'blob' }
+                { 
+                    responseType: 'blob',
+                    headers: {
+                        'Authorization': tokenAuth ? `Bearer ${tokenAuth}` : ''
+                    }
+                }
             );
 
             const contentType = response.headers['content-type'];
@@ -573,7 +591,6 @@ const SignatureSimplePage = () => {
                         onAnalyseComplete={(resultat) => {
                             console.log('🔍 Analyse falsification terminée:', resultat);
                             if (resultat.scoreIntegrite < 50) {
-                                // Alerte silencieuse dans la console
                                 console.warn('⚠️ Document suspect détecté! Score:', resultat.scoreIntegrite);
                             }
                         }}

@@ -8,6 +8,8 @@ import {
 import { Edit, Close, PhotoCamera, Delete, CloudUpload, ZoomIn } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const ProfileView = ({ userData, setUserData, isEditing, setIsEditing, handleUpdateProfil, setSnackbar, isMobile = false }) => {
     const [openPhotoDialog, setOpenPhotoDialog] = useState(false);
     const [openFullscreenDialog, setOpenFullscreenDialog] = useState(false);
@@ -17,6 +19,15 @@ const ProfileView = ({ userData, setUserData, isEditing, setIsEditing, handleUpd
     const fileInputRef = useRef(null);
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
+
+    // Récupérer le token
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        return {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+        };
+    };
 
     const handlePhotoClick = (e) => {
         e.stopPropagation();
@@ -54,9 +65,14 @@ const ProfileView = ({ userData, setUserData, isEditing, setIsEditing, handleUpd
     const handleSavePhoto = async () => {
         setUploading(true);
         try {
-            await axios.post('http://localhost:8080/api/utilisateur/upload-photo', 
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            await axios.post(`${API_BASE_URL}/utilisateur/upload-photo`, 
                 { photo: tempPhoto },
-                { withCredentials: true }
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                }
             );
             setUserData({ ...userData, photoProfil: tempPhoto });
             setOpenPhotoDialog(false);
@@ -72,9 +88,14 @@ const ProfileView = ({ userData, setUserData, isEditing, setIsEditing, handleUpd
     const handleDeletePhoto = async () => {
         setUploading(true);
         try {
-            await axios.post('http://localhost:8080/api/utilisateur/upload-photo', 
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            await axios.post(`${API_BASE_URL}/utilisateur/upload-photo`, 
                 { photo: null },
-                { withCredentials: true }
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                }
             );
             setUserData({ ...userData, photoProfil: null });
             setTempPhoto(null);

@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
 const UploadDocument = () => {
     const [file, setFile] = useState(null);
     const [status, setStatus] = useState(''); 
     const [uploadInfo, setUploadInfo] = useState(null); 
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
+
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
     };
@@ -22,9 +30,11 @@ const UploadDocument = () => {
         try {
             setStatus('Téléchargement et hachage en cours...');
             
-            const response = await axios.post('http://localhost:8080/api/documents/upload', formData, {
+            const token = getToken();
+            const response = await axios.post(`${API_BASE_URL}/documents/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': token ? `Bearer ${token}` : ''
                 },
             });
 
@@ -32,7 +42,8 @@ const UploadDocument = () => {
             setStatus('Succès ! Document sécurisé.');
         } catch (error) {
             console.error(error);
-            setStatus('Erreur lors de l\'envoi au serveur.');
+            const errorMsg = error.response?.data?.erreur || error.message || 'Erreur lors de l\'envoi au serveur.';
+            setStatus(`Erreur : ${errorMsg}`);
         }
     };
 

@@ -4,13 +4,12 @@ import { Email, Lock, Security } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 // URL de l'API backend
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
-// Fonction pour les requêtes API avec cookie
+// Fonction pour les requêtes API avec token (optionnel car endpoints publics)
 const fetchAPI = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -30,6 +29,7 @@ const MotDePasseOublie = () => {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [nouveauMotDePasse, setNouveauMotDePasse] = useState('');
+    const [confirmMotDePasse, setConfirmMotDePasse] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -40,11 +40,11 @@ const MotDePasseOublie = () => {
         setLoading(true);
         setError('');
         try {
-            const data = await fetchAPI('/api/mot-de-passe-oublie', { 
+            const data = await fetchAPI('/mot-de-passe-oublie', { 
                 method: 'POST',
                 body: JSON.stringify({ email })
             });
-            setMessage(data.message);
+            setMessage(data.message || "Un code vous a été envoyé par email.");
             setStep(2);
         } catch (err) {
             const msg = err.message || "Impossible de contacter le serveur.";
@@ -58,12 +58,27 @@ const MotDePasseOublie = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        
+        // Vérifier que les mots de passe correspondent
+        if (nouveauMotDePasse !== confirmMotDePasse) {
+            setError("Les mots de passe ne correspondent pas.");
+            setLoading(false);
+            return;
+        }
+        
+        // Vérifier la longueur minimale du mot de passe
+        if (nouveauMotDePasse.length < 8) {
+            setError("Le mot de passe doit contenir au moins 8 caractères.");
+            setLoading(false);
+            return;
+        }
+        
         try {
-            await fetchAPI('/api/reinitialiser-mot-de-passe', { 
+            await fetchAPI('/reinitialiser-mot-de-passe', { 
                 method: 'POST',
                 body: JSON.stringify({ email, code, nouveauMotDePasse })
             });
-            setMessage("Mot de passe modifié ! Redirection...");
+            setMessage("Mot de passe modifié avec succès ! Redirection...");
             setTimeout(() => navigate('/'), 2000);
         } catch (err) {
             setError(err.message || "Code invalide ou expiré.");
@@ -87,7 +102,7 @@ const MotDePasseOublie = () => {
                     backdropFilter: 'blur(10px)', borderRadius: 4, textAlign: 'center' 
                 }}>
                     <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: '#000' }}>
-                        {step === 1 ? "RÉINITIALISATION" : "NOUVEAU PASS"}
+                        {step === 1 ? "RÉINITIALISATION" : "NOUVEAU MOT DE PASSE"}
                     </Typography>
                     <Box sx={{ width: 40, height: 4, bgcolor: '#3b82f6', mx: 'auto', mb: 3 }} />
 
@@ -97,34 +112,80 @@ const MotDePasseOublie = () => {
                     {step === 1 ? (
                         <form onSubmit={handleDemande}>
                             <TextField 
-                                fullWidth label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required 
-                                margin="normal" sx={fieldStyle}
+                                fullWidth 
+                                label="Email" 
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                required 
+                                margin="normal" 
+                                sx={fieldStyle}
                                 InputProps={{ startAdornment: <InputAdornment position="start"><Email /></InputAdornment> }}
+                                disabled={loading}
                             />
-                            <Button fullWidth variant="contained" type="submit" disabled={loading} sx={{ mt: 2, py: 1.5, bgcolor: '#000' }}>
+                            <Button 
+                                fullWidth 
+                                variant="contained" 
+                                type="submit" 
+                                disabled={loading} 
+                                sx={{ mt: 2, py: 1.5, bgcolor: '#000' }}
+                            >
                                 {loading ? <CircularProgress size={24} /> : "Envoyer le code"}
                             </Button>
                         </form>
                     ) : (
                         <form onSubmit={handleReset}>
                             <TextField 
-                                fullWidth label="Code OTP" value={code} onChange={(e) => setCode(e.target.value)} required 
-                                margin="normal" sx={fieldStyle}
+                                fullWidth 
+                                label="Code OTP" 
+                                value={code} 
+                                onChange={(e) => setCode(e.target.value)} 
+                                required 
+                                margin="normal" 
+                                sx={fieldStyle}
                                 InputProps={{ startAdornment: <InputAdornment position="start"><Security /></InputAdornment> }}
+                                disabled={loading}
                             />
                             <TextField 
-                                fullWidth label="Nouveau mot de passe" type="password" 
-                                value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} 
-                                required margin="normal" sx={fieldStyle}
+                                fullWidth 
+                                label="Nouveau mot de passe" 
+                                type="password" 
+                                value={nouveauMotDePasse} 
+                                onChange={(e) => setNouveauMotDePasse(e.target.value)} 
+                                required 
+                                margin="normal" 
+                                sx={fieldStyle}
                                 InputProps={{ startAdornment: <InputAdornment position="start"><Lock /></InputAdornment> }}
+                                disabled={loading}
                             />
-                            <Button fullWidth variant="contained" color="success" type="submit" sx={{ mt: 2, py: 1.5 }} disabled={loading}>
+                            <TextField 
+                                fullWidth 
+                                label="Confirmer le mot de passe" 
+                                type="password" 
+                                value={confirmMotDePasse} 
+                                onChange={(e) => setConfirmMotDePasse(e.target.value)} 
+                                required 
+                                margin="normal" 
+                                sx={fieldStyle}
+                                InputProps={{ startAdornment: <InputAdornment position="start"><Lock /></InputAdornment> }}
+                                disabled={loading}
+                            />
+                            <Button 
+                                fullWidth 
+                                variant="contained" 
+                                color="success" 
+                                type="submit" 
+                                sx={{ mt: 2, py: 1.5 }} 
+                                disabled={loading}
+                            >
                                 {loading ? <CircularProgress size={24} /> : "Valider"}
                             </Button>
                         </form>
                     )}
                     
-                    <Button onClick={() => navigate('/')} sx={{ mt: 2, color: '#000', textTransform: 'none', opacity: 0.6 }}>
+                    <Button 
+                        onClick={() => navigate('/')} 
+                        sx={{ mt: 2, color: '#000', textTransform: 'none', opacity: 0.6 }}
+                    >
                         Retour à l'accueil
                     </Button>
                 </Box>

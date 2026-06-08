@@ -72,8 +72,13 @@ const SuperAdminDashboard = () => {
     ];
 
     const handleLogout = () => {
+        // Supprimer le token et les données utilisateur
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('user_info');
+        localStorage.removeItem('role');
+        sessionStorage.removeItem('accessToken');
         navigate('/connexion');
     };
 

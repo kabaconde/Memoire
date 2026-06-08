@@ -15,14 +15,28 @@ const ListeDocumentsAutoSignes = ({ setSnackbar, isMobile = false }) => {
     const [downloading, setDownloading] = useState({});
     const [deleting, setDeleting] = useState({});
 
-    const API_BASE_URL = 'http://localhost:8080/api/documents';
+    const API_BASE_URL = 'https://memoireback.onrender.com/api/documents';
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const isTablet = useMediaQuery('(max-width:960px)');
     const mobile = isMobile || isSmallScreen;
 
+    // Récupérer le token
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        return {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+        };
+    };
+
     const fetchDocuments = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/liste-signes-auto`, { withCredentials: true });
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            const res = await axios.get(`${API_BASE_URL}/liste-signes-auto`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
             setDocuments(res.data);
         } catch (e) {
             console.error("Erreur:", e);
@@ -36,7 +50,12 @@ const ListeDocumentsAutoSignes = ({ setSnackbar, isMobile = false }) => {
         if (window.confirm("Supprimer définitivement ce document ?")) {
             setDeleting(prev => ({ ...prev, [id]: true }));
             try {
-                await axios.delete(`${API_BASE_URL}/supprimer/${id}`, { withCredentials: true });
+                const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+                await axios.delete(`${API_BASE_URL}/supprimer/${id}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
                 setSnackbar({ open: true, message: "Document supprimé", severity: 'info' });
                 fetchDocuments();
             } catch (e) {
@@ -50,9 +69,12 @@ const ListeDocumentsAutoSignes = ({ setSnackbar, isMobile = false }) => {
     const handleDownload = async (id, nom) => {
         setDownloading(prev => ({ ...prev, [id]: true }));
         try {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             const response = await axios.get(`${API_BASE_URL}/download/${id}`, { 
-                responseType: 'blob', 
-                withCredentials: true 
+                responseType: 'blob',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');

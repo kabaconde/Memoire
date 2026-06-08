@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Eye, EyeOff, Lock } from 'lucide-react'; // Si tu as lucide-react, sinon utilise des icônes simples
+import { Eye, EyeOff, Lock } from 'lucide-react';
+
+const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
 const ChangerMotDePasse = ({ userId }) => {
     const [formData, setFormData] = useState({
@@ -16,6 +18,12 @@ const ChangerMotDePasse = ({ userId }) => {
     });
 
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [loading, setLoading] = useState(false);
+
+    // Récupérer le token
+    const getToken = () => {
+        return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,20 +43,30 @@ const ChangerMotDePasse = ({ userId }) => {
             return;
         }
 
-        try {
-            // L'ID est passé dans l'URL comme dans ton Contrôleur Spring Boot
-            const response = await axios.post(`http://localhost:8080/api/changer-mdp/${userId}`, {
-                ancienMdp: formData.ancienMdp,
-                nouveauMdp: formData.nouveauMdp
-            }, { withCredentials: true });
+        setLoading(true);
 
-            setMessage({ type: 'success', text: response.data.message });
+        try {
+            const token = getToken();
+            // L'ID est passé dans l'URL comme dans ton Contrôleur Spring Boot
+            const response = await axios.put(`${API_BASE_URL}/utilisateur/modifier-mot-de-passe`, {
+                ancienMotDePasse: formData.ancienMdp,
+                nouveauMotDePasse: formData.nouveauMdp
+            }, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setMessage({ type: 'success', text: response.data.message || 'Mot de passe modifié avec succès !' });
             setFormData({ ancienMdp: '', nouveauMdp: '', confirmerMdp: '' });
         } catch (err) {
             setMessage({ 
                 type: 'error', 
-                text: err.response?.data?.erreur || 'Une erreur est survenue.' 
+                text: err.response?.data?.erreur || err.response?.data?.message || 'Une erreur est survenue.' 
             });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -57,7 +75,7 @@ const ChangerMotDePasse = ({ userId }) => {
 
     return (
         <div className="max-w-xl p-6 bg-white rounded-md">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">*** Changer mot de passe</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">🔒 Changer mot de passe</h2>
             <p className="text-sm text-gray-500 mb-6">
                 Veuillez saisir et confirmer votre nouveau mot de passe pour sécuriser votre compte.
             </p>
@@ -79,8 +97,14 @@ const ChangerMotDePasse = ({ userId }) => {
                         value={formData.ancienMdp}
                         onChange={handleChange}
                         required
+                        disabled={loading}
                     />
-                    <button type="button" onClick={() => toggleVisibility('ancien')} className="absolute right-3 top-3 text-gray-400">
+                    <button 
+                        type="button" 
+                        onClick={() => toggleVisibility('ancien')} 
+                        className="absolute right-3 top-3 text-gray-400"
+                        disabled={loading}
+                    >
                         {showPassword.ancien ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                 </div>
@@ -95,8 +119,14 @@ const ChangerMotDePasse = ({ userId }) => {
                         value={formData.nouveauMdp}
                         onChange={handleChange}
                         required
+                        disabled={loading}
                     />
-                    <button type="button" onClick={() => toggleVisibility('nouveau')} className="absolute right-3 top-3 text-gray-400">
+                    <button 
+                        type="button" 
+                        onClick={() => toggleVisibility('nouveau')} 
+                        className="absolute right-3 top-3 text-gray-400"
+                        disabled={loading}
+                    >
                         {showPassword.nouveau ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                 </div>
@@ -111,8 +141,14 @@ const ChangerMotDePasse = ({ userId }) => {
                         value={formData.confirmerMdp}
                         onChange={handleChange}
                         required
+                        disabled={loading}
                     />
-                    <button type="button" onClick={() => toggleVisibility('confirmer')} className="absolute right-3 top-3 text-gray-400">
+                    <button 
+                        type="button" 
+                        onClick={() => toggleVisibility('confirmer')} 
+                        className="absolute right-3 top-3 text-gray-400"
+                        disabled={loading}
+                    >
                         {showPassword.confirmer ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                 </div>
@@ -120,14 +156,14 @@ const ChangerMotDePasse = ({ userId }) => {
                 <div className="pt-4">
                     <button
                         type="submit"
-                        disabled={!isFormValid}
+                        disabled={!isFormValid || loading}
                         className={`px-8 py-2 rounded font-medium transition ${
-                            isFormValid 
+                            isFormValid && !loading
                             ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         }`}
                     >
-                        Confirmer
+                        {loading ? "Chargement..." : "Confirmer"}
                     </button>
                 </div>
             </form>

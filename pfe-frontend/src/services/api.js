@@ -1,19 +1,27 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
-    if (process.env.NODE_ENV === 'production') {
-        return `${process.env.REACT_APP_API_URL}/api`;
-    }
-    return 'http://localhost:8080/api';
-    
-};
+// URL en dur pour tester
+const API_BASE_URL = 'https://memoireback.onrender.com';
 
 const API = axios.create({
-    baseURL: getBaseURL(),
-    withCredentials: true,
+    baseURL: API_BASE_URL,
     headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
     }
+});
+
+// Intercepteur pour ajouter /api si nécessaire
+API.interceptors.request.use((config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
+        config.url = `/api${config.url}`;
+    }
+    return config;
 });
 
 API.interceptors.response.use(
@@ -21,7 +29,6 @@ API.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             localStorage.clear();
-            document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '/';
         }
         return Promise.reject(error);
