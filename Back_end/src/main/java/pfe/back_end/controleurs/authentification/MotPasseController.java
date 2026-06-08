@@ -1,6 +1,5 @@
 package pfe.back_end.controleurs.authentification;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,7 @@ import java.util.Map;
 @CrossOrigin(origins = {
     "https://localhost:3000",
     "http://localhost:3000",
-    "https://memoirefrontend.onrender.com"  // À AJOUTER
+    "https://memoirefrontend.onrender.com"
 }, allowCredentials = "true")
 public class MotPasseController {
 
@@ -30,12 +29,23 @@ public class MotPasseController {
     @Autowired
     private UtilisateurRepository utilisateurRepository;
 
+    // 🔧 Méthode pour récupérer le token depuis le Header Authorization
+    private String recupererJwtDepuisHeader(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
+    }
 
     @PutMapping("/utilisateur/modifier-mot-de-passe")
     public ResponseEntity<?> modifierMotDePasse(@RequestBody Map<String, String> payload, HttpServletRequest request) {
         try {
-            String token = recupererJwtDepuisCookie(request);
-            if (token == null) return ResponseEntity.status(401).body(Map.of("erreur", "Session expirée"));
+            // 🔧 Lire le token depuis le header (pas depuis les cookies)
+            String token = recupererJwtDepuisHeader(request);
+            if (token == null) {
+                return ResponseEntity.status(401).body(Map.of("erreur", "Session expirée - Token manquant"));
+            }
 
             String email = jwtUtils.getEmailFromToken(token);
             Utilisateur user = utilisateurRepository.findByEmail(email)
@@ -55,13 +65,12 @@ public class MotPasseController {
     @PostMapping("/mot-de-passe-oublie")
     public ResponseEntity<?> demandeMotDePasse(@RequestBody Map<String, String> payload) {
         try {
-            motPasseService.demanderReinitialisation(payload.get("email"));  // Correction
+            motPasseService.demanderReinitialisation(payload.get("email"));
             return ResponseEntity.ok(Map.of("message", "Code envoyé."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("erreur", e.getMessage()));
         }
     }
-
 
     @PostMapping("/reinitialiser-mot-de-passe")
     public ResponseEntity<?> resetMotDePasse(@RequestBody Map<String, String> payload) {
@@ -75,18 +84,5 @@ public class MotPasseController {
         } catch (Exception e) {
             return ResponseEntity.status(400).body(Map.of("erreur", e.getMessage()));
         }
-    }
-
-
-
-    private String recupererJwtDepuisCookie(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("accessToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
     }
 }
