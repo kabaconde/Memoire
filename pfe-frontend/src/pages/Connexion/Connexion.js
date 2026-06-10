@@ -8,6 +8,7 @@ import { Lock, Email, Security } from '@mui/icons-material';
 import API from '../../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GoogleLoginNative from '../../components/GoogleLoginNative';
+import { Lock, Email, Security, Visibility, VisibilityOff } from '@mui/icons-material';
 
 const Connexion = ({ onSwitch, onLoginSuccess }) => {
     const [email, setEmail] = useState('');
