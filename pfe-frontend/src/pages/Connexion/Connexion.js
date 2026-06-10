@@ -4,7 +4,6 @@ import {
     CircularProgress, Typography, Link, Divider, useMediaQuery,
     Stack
 } from '@mui/material';
-import { Lock, Email, Security } from '@mui/icons-material';
 import API from '../../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GoogleLoginNative from '../../components/GoogleLoginNative';
