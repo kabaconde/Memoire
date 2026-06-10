@@ -59,12 +59,11 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
 
     const sendOtp = async () => {
         setLoading(true);
-        setError('');
         try {
             await API.post('/signature/send-otp', { email: email.trim().toLowerCase() });
             setIsOtpSent(true);
         } catch (err) {
-            setError("Erreur lors de l'envoi du code OTP");
+          
             setErrorKey(prev => prev + 1);
         } finally {
             setLoading(false);
