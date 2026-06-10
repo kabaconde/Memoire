@@ -3,7 +3,8 @@ import axios from 'axios';
 import { 
   Box, Typography, Grid, Card, CardContent, Chip, Stack, 
   IconButton, Tooltip, Dialog, useMediaQuery, Avatar, 
-  Divider, Paper, Fade, Badge, Tooltip as MuiTooltip
+  Divider, Paper, Fade, Badge, Tooltip as MuiTooltip,
+  Skeleton, Alert, LinearProgress
 } from '@mui/material';
 import Description from '@mui/icons-material/Description';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -17,19 +18,33 @@ import EmailIcon from '@mui/icons-material/Email';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import FilePresentIcon from '@mui/icons-material/FilePresent';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import VerificationReport from './VerificationReport';
 
+const MotionBox = motion(Box);
+const MotionCard = motion(Card);
+
 const API_BASE_URL = 'https://memoireback.onrender.com/api';
 
-const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
+const TransactionsView = ({ invitations, loading, onDocumentClick, refreshTransactions }) => {
   
   const [openReportDialog, setOpenReportDialog] = useState(false);
   const [currentVerificationResult, setCurrentVerificationResult] = useState(null);
   const [downloading, setDownloading] = useState({});
+  const [showWelcome, setShowWelcome] = useState(true);
   
   const isMobile = useMediaQuery('(max-width:600px)');
   const isTablet = useMediaQuery('(max-width:960px)');
+
+  // Masquer le message de bienvenue après 3 secondes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Récupérer le token
   const getAuthHeaders = () => {
@@ -166,10 +181,27 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
     return `${truncatedName}.${extension}`;
   };
 
+  const colors = {
+    primary: '#0b1e39',
+    secondary: '#ffc107',
+    accent: '#10b981',
+    background: '#f8fafc',
+    border: '#e2e8f0',
+    text: '#1e293b',
+    textLight: '#64748b'
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-        <Typography>Chargement des transactions...</Typography>
+      <Box sx={{ p: 3 }}>
+        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 2, mb: 2 }} />
+        <Grid container spacing={3}>
+          {[1, 2, 3].map((i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rounded" height={280} sx={{ borderRadius: 3 }} />
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     );
   }
@@ -177,7 +209,13 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
   if (!invitations || invitations.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
-        <Typography variant="h6" color="textSecondary">📭 Aucune transaction trouvée</Typography>
+        <Box sx={{ width: 80, height: 80, mx: 'auto', mb: 2, opacity: 0.5 }}>
+          <Description sx={{ fontSize: 80, color: colors.textLight }} />
+        </Box>
+        <Typography variant="h6" sx={{ color: colors.textLight }}>📭 Aucune transaction trouvée</Typography>
+        <Typography variant="body2" sx={{ color: colors.textLight, mt: 1 }}>
+          Les invitations et signatures apparaîtront ici
+        </Typography>
       </Box>
     );
   }
@@ -185,15 +223,59 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
   return (
     <Box sx={{ maxWidth: '1400px', mx: 'auto', width: '100%', px: { xs: 1, sm: 2, md: 0 } }}>
       
+      {/* Message de bienvenue animé */}
+      <AnimatePresence>
+        {showWelcome && invitations.length > 0 && (
+          <MotionBox
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+            sx={{
+              position: 'fixed',
+              top: 80,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1300,
+              width: { xs: '90%', sm: 'auto' }
+            }}
+          >
+            <Paper
+              elevation={6}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 1, sm: 2 },
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1, sm: 1.5 },
+                borderRadius: '50px',
+                background: `linear-gradient(135deg, ${colors.primary} 0%, #1a3a5c 100%)`,
+                color: '#fff',
+                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+                border: `1px solid rgba(255,193,7,0.3)`
+              }}
+            >
+              <Description sx={{ fontSize: { xs: 20, sm: 28 }, color: colors.secondary }} />
+              <Typography variant={isMobile ? "caption" : "body2"} sx={{ fontWeight: 600, letterSpacing: '0.5px' }}>
+                📄 {stats.total} transaction(s) - {stats.signes} signée(s) 📄
+              </Typography>
+            </Paper>
+          </MotionBox>
+        )}
+      </AnimatePresence>
+      
       {/* En-tête avec statistiques */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant={isMobile ? "h6" : "h5"} fontWeight="800" sx={{ color: '#0b1e39', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Description sx={{ color: '#1a237e' }} />
+        <Typography variant={isMobile ? "h6" : "h5"} fontWeight="800" sx={{ color: colors.primary, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Description sx={{ color: colors.primary }} />
           Transactions
           <Badge badgeContent={stats.total} color="primary" sx={{ '& .MuiBadge-badge': { fontWeight: 600 } }} />
         </Typography>
         
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <IconButton size="small" onClick={refreshTransactions} sx={{ color: colors.textLight }}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
           <Chip size="small" label={`📄 ${stats.total} total`} variant="outlined" />
           <Chip size="small" label={`✅ ${stats.signes} signés`} sx={{ bgcolor: '#e8f5e9', color: '#2e7d32' }} />
           <Chip size="small" label={`⏳ ${stats.enAttente} attente`} sx={{ bgcolor: '#fff3e0', color: '#ed6c02' }} />
@@ -224,15 +306,47 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
           return (
             <Grid item xs={12} sm={6} md={4} key={t.id || index}>
               <Fade in timeout={index * 100}>
-                <Card sx={{ 
-                  height: '100%',
-                  borderRadius: 3, 
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px rgba(0,0,0,0.12)' },
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
+                <MotionCard
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  sx={{ 
+                    height: '100%',
+                    borderRadius: 3, 
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px rgba(0,0,0,0.12)' },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'visible'
+                  }}
+                >
+                  {/* Badge type de signature en ruban */}
+                  {estSigne && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        right: 16,
+                        zIndex: 1,
+                        background: signatureType.bgcolor,
+                        borderRadius: '20px',
+                        px: 1.5,
+                        py: 0.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {signatureType.icon}
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: signatureType.color }}>
+                        {signatureType.label}
+                      </Typography>
+                    </Box>
+                  )}
+
                   <CardContent sx={{ p: 3, flex: 1 }}>
                     {/* En-tête de la carte */}
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
@@ -249,13 +363,14 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                wordBreak: 'break-word'
+                                wordBreak: 'break-word',
+                                color: colors.primary
                               }}
                             >
                               {displayFileName}
                             </Typography>
                           </MuiTooltip>
-                          <Typography variant="caption" color="textSecondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: colors.textLight, display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                             <PersonIcon sx={{ fontSize: 12 }} />
                             {`${prenom} ${nom}`.trim() || "Signataire inconnu"}
                           </Typography>
@@ -275,39 +390,30 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
                     {/* Informations */}
                     <Stack spacing={1.5}>
                       <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Chip 
-                          icon={signatureType.icon}
-                          label={signatureType.label} 
-                          size="small" 
-                          sx={{ bgcolor: signatureType.bgcolor, color: signatureType.color, fontWeight: 600, borderRadius: 2 }}
-                        />
-                      </Stack>
-
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        <EmailIcon sx={{ fontSize: 16, color: '#64748b' }} />
-                        <Typography variant="body2" sx={{ fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <EmailIcon sx={{ fontSize: 16, color: colors.textLight }} />
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', color: colors.text }}>
                           {email}
                         </Typography>
                       </Stack>
 
                       {telephone !== "N/A" && (
                         <Stack direction="row" spacing={1.5} alignItems="center">
-                          <PhoneIcon sx={{ fontSize: 16, color: '#64748b' }} />
-                          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{telephone}</Typography>
+                          <PhoneIcon sx={{ fontSize: 16, color: colors.textLight }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.text }}>{telephone}</Typography>
                         </Stack>
                       )}
 
                       <Stack direction="row" spacing={1.5} alignItems="center">
-                        <CalendarTodayIcon sx={{ fontSize: 16, color: '#64748b' }} />
-                        <Typography variant="caption" color="textSecondary">
+                        <CalendarTodayIcon sx={{ fontSize: 16, color: colors.textLight }} />
+                        <Typography variant="caption" sx={{ color: colors.textLight }}>
                           Invitation: {formatDate(dateInvitation)}
                         </Typography>
                       </Stack>
 
                       {dateSignature && (
                         <Stack direction="row" spacing={1.5} alignItems="center">
-                          <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} />
-                          <Typography variant="caption" sx={{ color: '#4caf50', fontWeight: 500 }}>
+                          <CheckCircleIcon sx={{ fontSize: 16, color: colors.accent }} />
+                          <Typography variant="caption" sx={{ color: colors.accent, fontWeight: 500 }}>
                             Signature: {formatDate(dateSignature)}
                           </Typography>
                         </Stack>
@@ -322,9 +428,15 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
                             size="small" 
                             onClick={() => handleDownload(docId, docNom, typeValue)} 
                             disabled={isDownloading}
-                            sx={{ bgcolor: '#e3f2fd', borderRadius: 2, '&:hover': { bgcolor: '#bbdefb' } }}
+                            sx={{ 
+                              bgcolor: '#e3f2fd', 
+                              borderRadius: 2, 
+                              '&:hover': { bgcolor: '#bbdefb' },
+                              width: 32,
+                              height: 32
+                            }}
                           >
-                            <DownloadIcon sx={{ color: '#1976d2' }} />
+                            <DownloadIcon sx={{ color: '#1976d2', fontSize: 18 }} />
                           </IconButton>
                         </Tooltip>
                         
@@ -333,16 +445,22 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
                             <IconButton 
                               size="small" 
                               onClick={() => verifierSignature(docId, docNom, typeValue)}
-                              sx={{ bgcolor: '#e8f5e9', borderRadius: 2, '&:hover': { bgcolor: '#c8e6c9' } }}
+                              sx={{ 
+                                bgcolor: '#e8f5e9', 
+                                borderRadius: 2, 
+                                '&:hover': { bgcolor: '#c8e6c9' },
+                                width: 32,
+                                height: 32
+                              }}
                             >
-                              <VerifiedUserIcon sx={{ color: '#2e7d32' }} />
+                              <VerifiedUserIcon sx={{ color: '#2e7d32', fontSize: 18 }} />
                             </IconButton>
                           </Tooltip>
                         )}
                       </Stack>
                     )}
                   </CardContent>
-                </Card>
+                </MotionCard>
               </Fade>
             </Grid>
           );
@@ -354,28 +472,45 @@ const TransactionsView = ({ invitations, loading, onDocumentClick }) => {
         elevation={0} 
         sx={{ 
           mt: 4, 
-          p: 2, 
-          bgcolor: '#f8fafc', 
+          p: 2.5, 
+          bgcolor: colors.background, 
           borderRadius: 3, 
-          border: '1px solid #e2e8f0'
+          border: `1px solid ${colors.border}`
         }}
       >
         <Stack direction={isMobile ? "column" : "row"} spacing={2} alignItems={isMobile ? "flex-start" : "center"} flexWrap="wrap">
-          <Typography variant="caption" sx={{ fontWeight: 700, color: '#0b1e39', minWidth: 120 }}>
-            Types de signature :
+          <Typography variant="caption" sx={{ fontWeight: 700, color: colors.primary, minWidth: 120 }}>
+            📋 Types de signature :
           </Typography>
           <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
-            <Chip icon={<SimpleIcon />} label="Signature Simple" size="small" sx={{ bgcolor: '#e3f2fd', fontWeight: 600 }} />
-            <Chip icon={<PkiIcon />} label="Signature PKI" size="small" sx={{ bgcolor: '#e8f5e9', fontWeight: 600 }} />
+            <Chip 
+              icon={<SimpleIcon />} 
+              label="Signature Simple" 
+              size="small" 
+              sx={{ bgcolor: '#e3f2fd', fontWeight: 600, color: '#1976d2' }} 
+            />
+            <Chip 
+              icon={<PkiIcon />} 
+              label="Signature PKI" 
+              size="small" 
+              sx={{ bgcolor: '#e8f5e9', fontWeight: 600, color: '#2e7d32' }} 
+            />
           </Stack>
+          <Typography variant="caption" sx={{ color: colors.textLight, ml: { sm: 'auto' } }}>
+            🔐 Les signatures PKI sont certifiées par un certificat numérique
+          </Typography>
         </Stack>
       </Paper>
 
+      {/* Dialog vérification */}
       <Dialog 
         open={openReportDialog} 
         onClose={() => setOpenReportDialog(false)}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
       >
         <VerificationReport 
           verificationResult={currentVerificationResult}

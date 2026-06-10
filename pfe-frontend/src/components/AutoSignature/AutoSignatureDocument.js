@@ -1,14 +1,18 @@
 // frontend/src/components/AutoSignature/AutoSignatureDocument.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { Box, Button, Typography, Paper, CircularProgress, Stack, Zoom, Alert, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
-import { CloudUpload, Download, HistoryEdu, CheckCircleOutline, PictureAsPdf, Warning, ErrorOutline } from '@mui/icons-material';
+import { Box, Button, Typography, Paper, CircularProgress, Stack, Zoom, Alert, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Collapse, IconButton } from '@mui/material';
+import { CloudUpload, Download, HistoryEdu, CheckCircleOutline, PictureAsPdf, Warning, ErrorOutline, ExpandMore, ExpandLess, Description, Security } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import ResumeDocument from '../IA/ResumeDocument';
 import DetecteurFalsification from '../IA/DetecteurFalsification';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const API_BASE_URL = 'https://memoireback.onrender.com/api';
+
+const MotionBox = motion(Box);
+const MotionPaper = motion(Paper);
 
 const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
     const [file, setFile] = useState(null);
@@ -23,6 +27,7 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
     const [contenuDocument, setContenuDocument] = useState('');
     const [nomDocument, setNomDocument] = useState('');
     const [showResume, setShowResume] = useState(false);
+    const [resumeLoading, setResumeLoading] = useState(false);
     
     // États pour les dialogues d'erreur
     const [errorDialog, setErrorDialog] = useState({
@@ -32,9 +37,44 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
         details: null
     });
     
+    // Nouveaux états pour les accordéons
+    const [resumeExpanded, setResumeExpanded] = useState(false);
+    const [falsificationExpanded, setFalsificationExpanded] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(true);
+    
     const contentRef = useRef(null);
     const isSmallScreen = useMediaQuery('(max-width:600px)');
     const mobile = isMobile || isSmallScreen;
+
+    // Masquer le message de bienvenue après 3 secondes
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowWelcome(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Style pour les en-têtes repliables
+    const collapsibleHeaderStyles = {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        padding: isMobile ? '6px 12px' : '8px 16px',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        marginBottom: (resumeExpanded || falsificationExpanded) ? '8px' : '0'
+    };
+
+    const collapsibleTitleStyles = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: isMobile ? '13px' : '14px',
+        fontWeight: '500',
+        color: '#333'
+    };
 
     // Fonction pour calculer le hash SHA-256 d'un fichier
     const calculateFileHash = async (file) => {
@@ -58,6 +98,7 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
 
     const extraireTexteDuPDF = async (file) => {
         try {
+            setResumeLoading(true);
             const url = URL.createObjectURL(file);
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
@@ -76,6 +117,8 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
         } catch (error) {
             console.error("Erreur extraction texte:", error);
             return "Impossible d'extraire le texte du PDF pour le résumé.";
+        } finally {
+            setResumeLoading(false);
         }
     };
 
@@ -322,7 +365,51 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
     }
 
     return (
-        <Box sx={{ maxWidth: '1000px', mx: 'auto', p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ maxWidth: '1200px', mx: 'auto', p: { xs: 2, sm: 3 } }}>
+            {/* Message de bienvenue animé */}
+            <AnimatePresence>
+                {showWelcome && (
+                    <MotionBox
+                        initial={{ opacity: 0, y: -50, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -50, scale: 0.9 }}
+                        transition={{ duration: 0.5, type: 'spring', stiffness: 300 }}
+                        sx={{
+                            position: 'fixed',
+                            top: 80,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 1300,
+                            width: { xs: '90%', sm: 'auto' }
+                        }}
+                    >
+                        <Paper
+                            elevation={6}
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: { xs: 1, sm: 2 },
+                                px: { xs: 2, sm: 3 },
+                                py: { xs: 1, sm: 1.5 },
+                                borderRadius: '50px',
+                                background: 'linear-gradient(135deg, #0b1e39 0%, #1a3a5c 100%)',
+                                color: '#fff',
+                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+                                border: '1px solid rgba(255,193,7,0.3)'
+                            }}
+                        >
+                            <HistoryEdu sx={{ fontSize: { xs: 20, sm: 28 }, color: '#ffc107' }} />
+                            <Typography 
+                                variant={mobile ? "caption" : "body2"} 
+                                sx={{ fontWeight: 600, letterSpacing: '0.5px' }}
+                            >
+                                ✨ Auto-Signature - Cliquez sur le PDF pour positionner votre signature ✨
+                            </Typography>
+                        </Paper>
+                    </MotionBox>
+                )}
+            </AnimatePresence>
+
             {/* DIALOGUE D'ERREUR PERSONNALISÉ */}
             <Dialog
                 open={errorDialog.open}
@@ -429,39 +516,76 @@ const AutoSignatureDocument = ({ setSnackbar, isMobile = false }) => {
                     </Box>
                 )}
 
-                {/* Résumé IA du document */}
-                {showResume && file && contenuDocument && (
-                    <Box sx={{ mt: 3, mb: 2 }}>
-                        <ResumeDocument 
-                            contenu={contenuDocument}
-                            nomFichier={nomDocument}
-                            onResumeGenere={(resume) => console.log('Résumé généré', resume)}
-                        />
+                {/* RÉSUMÉ IA - VERSION REPLIABLE */}
+                {resumeLoading && (
+                    <Box sx={{ mt: 2, mb: 2, mx: isMobile ? 1 : 3, textAlign: 'center' }}>
+                        <CircularProgress size={24} />
+                        <Typography variant="body2" sx={{ mt: 1 }}>Analyse du document...</Typography>
                     </Box>
                 )}
 
-                {/* Détecteur de falsification */}
-                {showResume && file && (
+                {showResume && file && contenuDocument && !resumeLoading && (
+                    <Box sx={{ mt: 3, mb: 2 }}>
+                        <Paper elevation={0} sx={{ borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={collapsibleHeaderStyles} onClick={() => setResumeExpanded(!resumeExpanded)}>
+                                <div style={collapsibleTitleStyles}>
+                                    <Description sx={{ fontSize: isMobile ? 18 : 20, color: '#2e7d32' }} />
+                                    <span>📋 Résumé intelligent du document</span>
+                                </div>
+                                <IconButton size="small">
+                                    {resumeExpanded ? <ExpandLess /> : <ExpandMore />}
+                                </IconButton>
+                            </div>
+                            <Collapse in={resumeExpanded}>
+                                <Box sx={{ p: 1 }}>
+                                    <ResumeDocument 
+                                        contenu={contenuDocument}
+                                        nomFichier={nomDocument}
+                                        onResumeGenere={(resume) => console.log('Résumé généré', resume)}
+                                    />
+                                </Box>
+                            </Collapse>
+                        </Paper>
+                    </Box>
+                )}
+
+                {/* DÉTECTEUR DE FALSIFICATION - VERSION REPLIABLE */}
+                {showResume && file && !resumeLoading && (
                     <Box sx={{ mt: 2, mb: 2 }}>
-                        <DetecteurFalsification 
-                            fichier={file}
-                            onAnalyseComplete={(resultat) => {
-                                console.log('🔍 Analyse falsification terminée:', resultat);
-                                if (resultat.scoreIntegrite < 50) {
-                                    setSnackbar({ 
-                                        open: true, 
-                                        message: "⚠️ ALERTE: Document suspect détecté! Vérifiez l'analyse de sécurité avant signature.", 
-                                        severity: 'warning' 
-                                    });
-                                } else if (resultat.scoreIntegrite >= 90) {
-                                    setSnackbar({ 
-                                        open: true, 
-                                        message: "✅ Document intègre - Sécurité vérifiée", 
-                                        severity: 'success' 
-                                    });
-                                }
-                            }}
-                        />
+                        <Paper elevation={0} sx={{ borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={collapsibleHeaderStyles} onClick={() => setFalsificationExpanded(!falsificationExpanded)}>
+                                <div style={collapsibleTitleStyles}>
+                                    <Security sx={{ fontSize: isMobile ? 18 : 20, color: '#ff9800' }} />
+                                    <span>🔒 Analyse d'intégrité du document</span>
+                                </div>
+                                <IconButton size="small">
+                                    {falsificationExpanded ? <ExpandLess /> : <ExpandMore />}
+                                </IconButton>
+                            </div>
+                            <Collapse in={falsificationExpanded}>
+                                <Box sx={{ p: 1 }}>
+                                    <DetecteurFalsification 
+                                        fichier={file}
+                                        onAnalyseComplete={(resultat) => {
+                                            console.log('🔍 Analyse falsification terminée:', resultat);
+                                            if (resultat.scoreIntegrite < 50) {
+                                                setSnackbar({ 
+                                                    open: true, 
+                                                    message: "⚠️ ALERTE: Document suspect détecté! Vérifiez l'analyse de sécurité avant signature.", 
+                                                    severity: 'warning' 
+                                                });
+                                            } else if (resultat.scoreIntegrite >= 90) {
+                                                setSnackbar({ 
+                                                    open: true, 
+                                                    message: "✅ Document intègre - Sécurité vérifiée", 
+                                                    severity: 'success' 
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </Box>
+                            </Collapse>
+                        </Paper>
                     </Box>
                 )}
 
