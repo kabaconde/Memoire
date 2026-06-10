@@ -134,8 +134,6 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
             if (onLoginSuccess) onLoginSuccess();
             setTimeout(() => redirectUserByRole(response.data.role), 1000);
         } catch (err) {
-            const errorMessage = err.response?.data?.erreur || "Code OTP invalide ou expiré.";
-            setError(errorMessage);
             setErrorKey(prev => prev + 1);
         } finally { 
             setLoading(false); 
