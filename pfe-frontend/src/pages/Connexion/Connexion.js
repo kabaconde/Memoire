@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { 
     Box, TextField, Button, Alert, InputAdornment, 
     CircularProgress, Typography, Link, Divider, useMediaQuery,
-    Stack
+    Stack, IconButton  // ✅ AJOUTER IconButton
 } from '@mui/material';
+import { 
+    Lock, Email, Security, Visibility, VisibilityOff  // ✅ Tous les icônes nécessaires
+} from '@mui/icons-material';
 import API from '../../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GoogleLoginNative from '../../components/GoogleLoginNative';
-import { Lock, Email, Security, Visibility, VisibilityOff } from '@mui/icons-material';
+
 
 const Connexion = ({ onSwitch, onLoginSuccess }) => {
     const [email, setEmail] = useState('');

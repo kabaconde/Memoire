@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, TextField, Button, Grid, Alert, InputAdornment, 
-  CircularProgress, Typography, Fade, FormHelperText
+  CircularProgress, Typography, Fade, FormHelperText, IconButton  // ✅ AJOUTER IconButton
 } from '@mui/material';
-import { Lock, Phone, CheckCircleOutline, ArrowForward, Mail, Person, ErrorOutline } from '@mui/icons-material';
+import { 
+  Lock, Phone, CheckCircleOutline, ArrowForward, Mail, Person, ErrorOutline,
+  Visibility, VisibilityOff  // ✅ AJOUTER Visibility, VisibilityOff
+} from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API from '../../services/api';
-import { 
-   Visibility, VisibilityOff  
-} from '@mui/icons-material';
+
+
 const Inscription = () => {
   const [formData, setFormData] = useState({ 
     email: '', 
