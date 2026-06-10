@@ -27,6 +27,11 @@ const Inscription = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
 
+
+
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -279,36 +284,51 @@ const Inscription = () => {
             />
           </Grid>
           <Grid item xs={12}>
-            <TextField 
-              fullWidth 
-              label="Mot de passe" 
-              type="password" 
-              required 
-              value={formData.motDePasse} 
-              onChange={(e) => setFormData({...formData, motDePasse: e.target.value})}
-              error={!!errors.motDePasse}
-              helperText={errors.motDePasse || "12+ caractères, majuscule, minuscule, chiffre, caractère spécial"}
-              InputProps={{ 
-                sx: { borderRadius: '12px' }, 
-                startAdornment: <InputAdornment position="start"><Lock sx={{ fontSize: 20 }}/></InputAdornment>
-              }}
-            />
+           <TextField 
+    fullWidth 
+    label="Mot de passe" 
+    type={showPassword ? 'text' : 'password'}  // ✅ Changement
+    required 
+    value={formData.motDePasse} 
+    onChange={(e) => setFormData({...formData, motDePasse: e.target.value})}
+    error={!!errors.motDePasse}
+    helperText={errors.motDePasse || "12+ caractères, majuscule, minuscule, chiffre, caractère spécial"}
+    InputProps={{ 
+        sx: { borderRadius: '12px' }, 
+        startAdornment: <InputAdornment position="start"><Lock sx={{ fontSize: 20 }}/></InputAdornment>,
+        endAdornment: (  // ✅ Ajout du bouton
+            <InputAdornment position="end">
+                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+            </InputAdornment>
+        )
+    }}
+/>
+
           </Grid>
           <Grid item xs={12}>
             <TextField 
-              fullWidth 
-              label="Confirmer le mot de passe" 
-              type="password" 
-              required 
-              value={formData.confirmMotDePasse} 
-              onChange={(e) => setFormData({...formData, confirmMotDePasse: e.target.value})}
-              error={!!errors.confirmMotDePasse}
-              helperText={errors.confirmMotDePasse}
-              InputProps={{ 
-                sx: { borderRadius: '12px' }, 
-                startAdornment: <InputAdornment position="start"><Lock sx={{ fontSize: 20 }}/></InputAdornment>
-              }}
-            />
+    fullWidth 
+    label="Confirmer le mot de passe" 
+    type={showConfirmPassword ? 'text' : 'password'}  // ✅ Changement
+    required 
+    value={formData.confirmMotDePasse} 
+    onChange={(e) => setFormData({...formData, confirmMotDePasse: e.target.value})}
+    error={!!errors.confirmMotDePasse}
+    helperText={errors.confirmMotDePasse}
+    InputProps={{ 
+        sx: { borderRadius: '12px' }, 
+        startAdornment: <InputAdornment position="start"><Lock sx={{ fontSize: 20 }}/></InputAdornment>,
+        endAdornment: (  // ✅ Ajout du bouton
+            <InputAdornment position="end">
+                <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+            </InputAdornment>
+        )
+    }}
+/>
           </Grid>
         </Grid>
 

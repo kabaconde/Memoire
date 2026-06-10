@@ -18,7 +18,8 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errorKey, setErrorKey] = useState(0);
-    
+        const [showPassword, setShowPassword] = useState(false); // ✅ Ajouté
+
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -299,21 +300,28 @@ const Connexion = ({ onSwitch, onLoginSuccess }) => {
                         sx={fieldStyle}
                         size={isMobile ? "small" : "medium"}
                     />
-                    <TextField 
-                        fullWidth 
-                        label="Mot de passe" 
-                        type="password" 
-                        margin="normal" 
-                        required 
-                        value={motDePasse}
-                        onChange={handlePasswordChange}
-                        disabled={loading}
-                        InputProps={{ 
-                            startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#000', fontSize: isMobile ? 20 : 24 }} /></InputAdornment> 
-                        }}
-                        sx={fieldStyle}
-                        size={isMobile ? "small" : "medium"}
-                    />
+                     <TextField 
+                fullWidth 
+                label="Mot de passe" 
+                type={showPassword ? 'text' : 'password'}  // ✅ Changement ici
+                margin="normal" 
+                required 
+                value={motDePasse}
+                onChange={handlePasswordChange}
+                disabled={loading}
+                InputProps={{ 
+                    startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#000', fontSize: isMobile ? 20 : 24 }} /></InputAdornment>,
+                    endAdornment: (  // ✅ Ajout du bouton pour voir/cacher
+                        <InputAdornment position="end">
+                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                        </InputAdornment>
+                    )
+                }}
+                sx={fieldStyle}
+                size={isMobile ? "small" : "medium"}
+            />
                     <Button 
                         fullWidth 
                         variant="contained" 

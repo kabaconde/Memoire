@@ -23,16 +23,7 @@ const DemandeInscription = () => {
   // VALIDATION EMAIL SELON RFC 5322
   // ============================================
   
-  /**
-   * Valide un email selon les règles RFC 5322
-   * Règles:
-   * - La partie locale (avant @) max 64 caractères
-   * - Le domaine (après @) max 255 caractères
-   * - Caractères autorisés dans partie locale: lettres, chiffres, ., _, -, +
-   * - Pas de points consécutifs dans partie locale
-   * - Pas de point au début ou fin de partie locale
-   * - Domaine valide avec TLD d'au moins 2 caractères
-   */
+ 
   const validateEmailRFC5322 = (email) => {
     // Trim et nettoyage
     const trimmedEmail = email.trim().toLowerCase();
