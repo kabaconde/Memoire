@@ -6,7 +6,9 @@ import {
 import { Lock, Phone, CheckCircleOutline, ArrowForward, Mail, Person, ErrorOutline } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API from '../../services/api';
-
+import { 
+   Visibility, VisibilityOff  
+} from '@mui/icons-material';
 const Inscription = () => {
   const [formData, setFormData] = useState({ 
     email: '', 
